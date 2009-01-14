@@ -1,0 +1,65 @@
+Release History
+***************
+
+
+1.1.4 (2008-06-25)
+==================
+
+Add support to autogen configure files.
+
+1.1.3 (2008-06-03)
+==================
+
+Add support for updating the environment.
+
+1.1.2 (2008-02-28)
+==================
+
+Bugs Fixed
+----------
+
+Check if the `location` folder exists before creating it.
+
+After 1.1.0
+===========
+
+Added support for patches to be downloaded from a url rather than only using
+patches on the filesystem
+
+1.1.0
+=====
+
+Added support for:
+
+ - download-cache: downloaded files are cached in the 'cmmi' subdirectory of
+   the cache cache keys are hashes of the url that the file was downloaded from
+   cache information recorded in the cache.ini file within each directory
+
+ - offline mode: cmmi will not go online if the package is not in the cache
+
+ - variable location: build files other than in the parts directory if required
+
+ - additional logging/output
+
+1.0.2 (2007-06-03)
+==================
+
+Added support for patches.
+
+Bugs Fixed
+----------
+
+Tests fixed (buildout's output changed)
+
+1.0.1 (2006-11-22)
+==================
+
+Bugs Fixed
+----------
+
+Added missing zip_safe flag.
+
+1.0 (2006-11-22)
+================
+
+Initial release.
