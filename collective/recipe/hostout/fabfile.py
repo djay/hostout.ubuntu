@@ -2,7 +2,7 @@ import os
 
 def createuser(buildout_user='buildout'):
     "Creates a user account to run the buildout in"
-    let(keyname="buildout_dsa.$(buildout_host)")
+    set(keyname="buildout_dsa.$(buildout_host)")
     if not os.path.exists(keyname):
         try:
             run('cd ~$(buildout_user)',fail='abort')
@@ -25,7 +25,7 @@ def createuser(buildout_user='buildout'):
             pass
         sudo('cp ~$(buildout_user)/.ssh/authorized_keys ~$(buildout_user)/.ssh/authorized_keys.bak')
         sudo('cat /tmp/buildout_dsa.pub >> ~$(buildout_user)/.ssh/authorized_keys')
-    let(fab_key_filename=keyname)
+    set(fab_key_filename=keyname)
 
 def preparebuildout():
     "install buildout and its dependencies"
@@ -52,14 +52,14 @@ def sendeggs():
 
 def deploy(user='plone', remote_dir='buildout'):
     "Prints hello."
-    let(
+    set(
         fab_user='zope',
         buildout_user=user,
         buildout_dir=remote_dir,
     )
-    createuser()
-    let(
+    #createuser()
+    set(
         fab_user='$(buildout_user)',
     )
-    let(fab_key_filename="buildout_dsa")
+    set(fab_key_filename="buildout_dsa")
     preparebuildout()
