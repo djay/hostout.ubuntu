@@ -1,3 +1,36 @@
+
+Hostout. one click deployment for plone.
+
+Goals:
+1. solution for deploying plone with just a local buildout, ssh access and no server experience.
+  - designed to lower the barrier of entry for hobbyists wanting to host. 
+  - $20/m plone site in 2min.
+  - few dependencies. clean server install and no source control or 3rd party servers needed.
+  - work with buildout so that eventually hostout can be a part of unifiedinstaller
+2. work with professional setups where source control and private pypi servers exist.
+  - put an easy to implement best practices deployment model in place so you don't have to think hard to make controlled
+    repeatable buildouts
+  - be SCM neutral - plugin archetecture to use git or svn or whatever. 
+3. Make repeatable best practice deployments
+  - make it easy to roll back to a previous version from the client
+  - make it possible to have more than one server each with differetn versions of code - staging.
+  - make it easy to work with databases between dev, staging and production.
+4. If possible not assume plone/zope. Allow it to be a buildout based deployer.
+
+
+How will it do this?
+
+Recipe collects info on eggs used and creates a deployment script. Lets you choose where you want to deploy it
+and which buildout file to deploy.
+Deployment will
+- work with creating version numbers of dev packages and buildout.
+- might need to halt if source isn't in state to release 
+- handle checking in and storing versions of code to be deployed. make sure we have a solid tags abnd pointers
+  to everything in the whole project release.
+  
+
+  
+
 Create a release of each dev egg, auto incrementing the version numbers. To do this it will have to compare the code to a hash to see if its changed. The release is a egg which is zipped and sent to folder on the server
 
 So all dev references are in dev.cfg but not in prod.cfg
