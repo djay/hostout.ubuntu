@@ -80,15 +80,20 @@ class HostOut:
         self.buildout_file = buildout_file
         self.config_file = config_file
         self.packages = packages
-        
-    def createDeployTar(self):
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
         if not os.path.exists(dist_dir):
             os.makedirs(dist_dir)
-        return tarfile.open('%s/%s_1.tgz'%(dist_dir,'deploy'),"w:gz") #TODO: need to give it a version
+        self.tar = None
+        
+    def getDeployTar(self):
+        dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
+        name = '%s/%s_1.tgz'%(dist_dir,'deploy')
+        if self.tar is None:
+            self.tar = tarfile.open(name,"w:gz")
+        return self.tar,name #TODO: need to give it a version
 
     
-    def package_buildout(self, tar):
+    def package_buildout(self):
         "determine all the buildout files that make up this configuration and package them"
         folder = self.dist_dir
         
@@ -99,6 +104,8 @@ class HostOut:
             raise "Invalid config file"
     
         files = get_all_extends(config_file)
+        
+        tar,tarname = self.getDeployTar()
         
         for file in files:
             relative = file[len(self.buildout_location)+1:] #TODO
@@ -116,7 +123,7 @@ class HostOut:
     
     
     
-    def release_eggs(self, tar):
+    def release_eggs(self):
         "developer eggs->if changed, increment versions, build and get ready to upload"
         # first get list of deveelop packages we got from recipe
         # for each package
@@ -126,11 +133,14 @@ class HostOut:
         tmpdir = tempfile.mkdtemp()
         localdist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
         
-        buildout = Buildout(self.config_file,[])
+        buildout = Buildout(self.buildout_file,[])
         for path in self.packages:
             
             # use buildout to run setup for us
             buildout.setup(args=[path,'sdist','--dist-dir', '%s'%tmpdir])
+        tar,tarname = self.getDeployTar()
+        tar.add(self.dist_dir)
+
         for dist in os.listdir(tmpdir):
             src = os.path.join(tmpdir,dist)
             tar.add(src, arcname=os.path.join(self.dist_dir,dist))
@@ -174,7 +184,9 @@ def runfabric(fabfile, args):
 
 
 def main(fabfile='fabfile.py',
-         user='plone',
+         user='root',
+         password=None,
+         effectiveuser='plone',
          remote_dir='buildout',
          buildout_file='buildout.cfg',
          dist_dir='dist', 
@@ -183,8 +195,8 @@ def main(fabfile='fabfile.py',
          config_file='hostout.cfg'):
     "execute the fabfile we generated"
     
-    from os.path import dirname, abspath
-    here = abspath(dirname(__file__))
+#    from os.path import dirname, abspath
+#    here = abspath(dirname(__file__))
     
     hostout = HostOut(buildout_location,
                       dist_dir,
@@ -192,16 +204,20 @@ def main(fabfile='fabfile.py',
                       config_file,
                       packages)
 
-    tar = hostout.createDeployTar()
-    hostout.release_eggs(tar)
-    hostout.package_buildout(tar)
+    hostout.release_eggs()
+    hostout.package_buildout()
+    tar,package = hostout.getDeployTar()
     tar.close()
+    dir,package = os.path.split(package)
     
-    #keyfile,key = hostout.getDSAKey()
+    if remote_dir[0] not in ['/','~']:
+        remote_dir = '~%s/%s' %(remote_dir,effective_user)
+    
     if not os.path.exists(os.path.join(buildout_location,'buildout_dsa')):
+        #keyfile,key = hostout.getDSAKey() #TODO passwordless setup and signon
         args = ['hoststrap:user=%s,remote_dir=%s'%(user,remote_dir)]
         runfabric(fabfile, args)
-    args = ['deploy:user=%s,remote_dir=%s'%(user,remote_dir)]
+    args = ['deploy:user=%s,remote_dir=%s,dist_dir=%s,package=%s'%(user,remote_dir,dist_dir,package)]
     runfabric(fabfile, args)
  
      

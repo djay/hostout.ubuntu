@@ -51,7 +51,7 @@ setup(
     include_package_data = True,
     data_files = [('.', ['README.txt'])],
     namespace_packages = ['collective', 'collective.recipe'],
-    install_requires = ['zc.buildout', 'setuptools', 'fabric','collective.releaser'],
+    install_requires = ['zc.buildout', 'setuptools', 'fabric','collective.releaser','functools'],
     entry_points = {'zc.buildout':
                     ['default = %s:Recipe' % name]},
     zip_safe = True,

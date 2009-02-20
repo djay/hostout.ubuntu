@@ -55,11 +55,13 @@ class Recipe:
         self.dist_dir = options['dist_dir'] = dist_dir = self.options.get('dist_dir','dist')
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.buildout_cfg = options['buildout'] = options.get('buildout','buildout.cfg')
+        self.password = options.get('password',None) 
 
     def install(self):
         logger = logging.getLogger(self.name)
-        user = self.options.get('user','plone')
-        remote_dir = self.options.get('buildout_dir','~%s/buildout'%user)
+        user = self.options.get('user','root')
+        effectiveuser = self.options.get('effective-user','plone')
+        self.remote_dir = self.options.get('remote_path','~%s/buildout'%user)
         host = self.options['host']
         #import pdb; pdb.set_trace()
         
@@ -80,13 +82,30 @@ class Recipe:
         #    extra_paths+=[package]
         #extra_paths.append(os.path.join('c:\\python25'))
         #options['executable'] = 'c:\\Python25\\python.exe'
+        config_file = self.buildout_cfg
 
 #        buildoutroot = os.getcwd()
         
         hostout = self.genhostout()
         
-        args = 'fabfile=r"%s",user=r"%s",remote_dir=r"%s",dist_dir=r"%s",packages=%s,buildout_location="%s",config_file="%s"'%\
-                (fname,user,remote_dir,self.dist_dir, str(packages), self.buildout_dir, hostout)
+        args = 'fabfile=r"%s",\
+        user=r"%s",\
+        password=r"%s",\
+        effectiveuser="%s",\
+        remote_dir=r"%s",\
+        dist_dir=r"%s",\
+        packages=%s,\
+        buildout_location="%s",\
+        config_file="%s"'%\
+                (fname,
+                 user,
+                 self.password,
+                 effectiveuser,
+                 self.remote_dir,
+                 self.dist_dir, 
+                 str(packages), 
+                 self.buildout_dir, 
+                 hostout)
                 
         
         zc.buildout.easy_install.scripts(
@@ -120,12 +139,19 @@ class Recipe:
 
     
         base = self.buildout_dir
+        dist_dir = os.path.abspath(os.path.join(self.buildout_dir,self.dist_dir))
+        if not os.path.exists(dist_dir):
+            os.makedirs(dist_dir)
+        
         buildoutfile = relpath(self.buildout_cfg, base)
         dist_dir = relpath(self.dist_dir, base)
         versions = ''
+        install_base = os.path.dirname(self.remote_dir)
+        buildout_cache = os.path.join(install_base,'buildout-cache')
         hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
                                           eggdir=dist_dir,
-                                          versions=versions)
+                                          versions=versions,
+                                          buildout_cache=buildout_cache)
         path = os.path.join(base,'hostout.cfg')     
         hostoutf = open(path,'w')
         hostoutf.write(hostout)
@@ -139,6 +165,10 @@ HOSTOUT_TEMPLATE = """
 extends=%(buildoutfile)s
 #versions=versions
 find-links+=%(eggdir)s
+eggs-directory=%(buildout_cache)s/eggs
+download-cache=%(buildout_cache)s/downloads
+
+
 
 [versions]
 %(versions)s
