@@ -53,17 +53,16 @@ def installhostout():
     #need a way to make sure ownership of files is ok
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
     sudo('sh -c "cd $(install_dir) && bin/buildout -c hostout.cfg"')
+    run('cd $(install_dir) && $(reload_cmd)')
     run('cd $(install_dir) && $(start_cmd)')
 
-    
-    
 
-
-def deploy(user='plone', buildout_user='plone', remote_dir='buildout', dist_dir='dist', package='deploy_1'):
+def deploy(user='plone', buildout_user='plone', remote_dir='buildout', dist_dir='dist', package='deploy_1',password=None):
     "Prints hello."
+    if password is not None:
+        set(fab_password=password)
     set(
         fab_user=user,
-        fab_password='E3.P1t4%%',
         effectiveuser=buildout_user,
         buildout_dir=remote_dir,
         unified='Plone-3.2.1r3-UnifiedInstaller',
@@ -84,6 +83,7 @@ def deploy(user='plone', buildout_user='plone', remote_dir='buildout', dist_dir=
         package_path=os.path.abspath(os.path.join(dist_dir,package)),
         stop_cmd='bin/supervisorctl stop all',
         start_cmd='bin/supervisorctl start all',
+        reload_cmd='bin/supervisorctl reload',
     )
     installhostout()
     
