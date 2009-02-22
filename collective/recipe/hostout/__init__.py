@@ -78,6 +78,7 @@ class Recipe:
         open(fname, 'w+').write(fabfile)
         extra_paths=[]
         packages = [p.strip() for p in self.buildout.get('buildout').get('develop').split()]
+        packages += self.options.get('packages','').split()
         #for package in self.options['buildout']['develop']:
         #    extra_paths+=[package]
         #extra_paths.append(os.path.join('c:\\python25'))
@@ -164,10 +165,17 @@ HOSTOUT_TEMPLATE = """
 [buildout]
 extends=%(buildoutfile)s
 #versions=versions
+newest=false
+
+#Our own packaged eggs
 find-links+=%(eggdir)s
+
+#prevent us looking for them as developer eggs
+develop=
+
+#Match to unifiedinstaller
 eggs-directory=%(buildout_cache)s/eggs
 download-cache=%(buildout_cache)s/downloads
-
 
 
 [versions]

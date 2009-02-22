@@ -22,20 +22,6 @@ def createuser(buildout_user='buildout'):
     set(fab_key_filename=keyname)
 
 
-def hoststrap(user='plone', buildout_user='plone', remote_dir='buildout'):
-    "Prints hello."
-    set(
-        fab_user=user,
-        fab_password='E3.P1t4%%',
-        effectiveuser=buildout_user,
-        buildout_dir=remote_dir,
-        unified='Plone-3.2.1r3-UnifiedInstaller',
-        unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
-        install_dir=os.path.split(remote_dir)[0],
-        instance=os.path.split(remote_dir)[1],
-    )
-    preparebuildout()
-
 
 def preparebuildout():
     "install buildout and its dependencies"
@@ -45,7 +31,7 @@ def preparebuildout():
     #run('export http_proxy=localhost:8123') # TODO get this from setting
     run('cd /tmp && test -f $(unified).tgz || wget $(unified_url)')
     run('test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
-    sudo('test -d $(install_dir) || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)')
+    sudo('test -d $(buildout_dir) || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)')
 
 #    try:
 #        run('ls $(buildout_dir)/bootstrap.py')
@@ -65,7 +51,7 @@ def installhostout():
     put('$(package_path)', '/tmp/$(hostout_package)')
     run('cd $(install_dir) && $(stop_cmd) || echo unable to stop application')
     #need a way to make sure ownership of files is ok
-    sudo('tar -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
+    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
     sudo('sh -c "cd $(install_dir) && bin/buildout -c hostout.cfg"')
     run('cd $(install_dir) && $(start_cmd)')
 
@@ -73,8 +59,19 @@ def installhostout():
     
 
 
-def deploy(user='plone', remote_dir='buildout', dist_dir='dist', package='deploy_1'):
+def deploy(user='plone', buildout_user='plone', remote_dir='buildout', dist_dir='dist', package='deploy_1'):
     "Prints hello."
+    set(
+        fab_user=user,
+        fab_password='E3.P1t4%%',
+        effectiveuser=buildout_user,
+        buildout_dir=remote_dir,
+        unified='Plone-3.2.1r3-UnifiedInstaller',
+        unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
+        install_dir=os.path.split(remote_dir)[0],
+        instance=os.path.split(remote_dir)[1],
+    )
+    preparebuildout()
     set(
         buildout_user=user,
         buildout_dir=remote_dir,
@@ -89,3 +86,6 @@ def deploy(user='plone', remote_dir='buildout', dist_dir='dist', package='deploy
         start_cmd='bin/supervisorctl start all',
     )
     installhostout()
+    
+    
+    

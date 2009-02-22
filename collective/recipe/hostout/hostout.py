@@ -89,6 +89,8 @@ class HostOut:
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
         name = '%s/%s_1.tgz'%(dist_dir,'deploy')
         if self.tar is None:
+            if os.path.exists(name):
+                os.remove(name)
             self.tar = tarfile.open(name,"w:gz")
         return self.tar,name #TODO: need to give it a version
 
@@ -137,14 +139,19 @@ class HostOut:
         for path in self.packages:
             
             # use buildout to run setup for us
-            buildout.setup(args=[path,'sdist','--dist-dir', '%s'%tmpdir])
+            if os.path.isdir(path):
+                buildout.setup(args=[path,'sdist','--dist-dir', '%s'%tmpdir])
+            else:
+                shutil.copy(path,tmpdir)
         tar,tarname = self.getDeployTar()
-        tar.add(self.dist_dir)
 
         for dist in os.listdir(tmpdir):
             src = os.path.join(tmpdir,dist)
             tar.add(src, arcname=os.path.join(self.dist_dir,dist))
-            os.rename(src, os.path.join(localdist_dir,dist))
+            tgt = os.path.join(localdist_dir,dist)
+            if os.path.exists(tgt):
+                os.remove(tgt)
+            os.rename(src, tgt)
         os.removedirs(tmpdir)
         
     def getDSAKey(self):
@@ -213,10 +220,6 @@ def main(fabfile='fabfile.py',
     if remote_dir[0] not in ['/','~']:
         remote_dir = '~%s/%s' %(remote_dir,effective_user)
     
-    if not os.path.exists(os.path.join(buildout_location,'buildout_dsa')):
-        #keyfile,key = hostout.getDSAKey() #TODO passwordless setup and signon
-        args = ['hoststrap:user=%s,remote_dir=%s'%(user,remote_dir)]
-        runfabric(fabfile, args)
     args = ['deploy:user=%s,remote_dir=%s,dist_dir=%s,package=%s'%(user,remote_dir,dist_dir,package)]
     runfabric(fabfile, args)
  

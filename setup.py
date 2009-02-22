@@ -21,17 +21,17 @@ def read(*rnames):
 name = "collective.recipe.hostout"
 setup(
     name = name,
-    version = "0.1",
+    version = "0.1.1",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = "ZC Buildout recipe to create a tool uploading and deploying to a server",
-    license = "ZPL 2.1",
+    license = "GPL",
     keywords = "buildout, deploy",
     url='http://www.python.org/pypi/'+name,
     long_description=(
         read('README.txt')
-        + '\n' +
-        read('CHANGES.txt')
+ #       + '\n' +
+ #       read('CHANGES.txt')
         + '\n' +
         'Detailed Documentation\n'
         '**********************\n'
@@ -49,9 +49,10 @@ setup(
 
     packages = find_packages(),
     include_package_data = True,
-    data_files = [('.', ['README.txt'])],
+#    data_files = [('.', ['*.txt'])],
+#   package_data = {'':('*.txt')},
     namespace_packages = ['collective', 'collective.recipe'],
-    install_requires = ['zc.buildout', 'setuptools', 'fabric','collective.releaser','functools'],
+    install_requires = ['zc.buildout', 'setuptools', 'fabric<0.1.0','collective.releaser','functools'],
     entry_points = {'zc.buildout':
                     ['default = %s:Recipe' % name]},
     zip_safe = True,
