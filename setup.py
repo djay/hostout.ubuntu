@@ -52,7 +52,7 @@ setup(
 #    data_files = [('.', ['*.txt'])],
 #   package_data = {'':('*.txt')},
     namespace_packages = ['collective', 'collective.recipe'],
-    install_requires = ['zc.buildout', 'setuptools', 'fabric<0.1.0','collective.releaser','functools'],
+    install_requires = ['zc.buildout', 'setuptools', 'Fabric<0.1.0','collective.releaser','functools'],
     entry_points = {'zc.buildout':
                     ['default = %s:Recipe' % name]},
     zip_safe = True,
