@@ -134,13 +134,14 @@ class HostOut:
         #python setup.py sdist bdist_egg
         tmpdir = tempfile.mkdtemp()
         localdist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
+        import pdb; pdb.set_trace()
         
         buildout = Buildout(self.buildout_file,[])
         for path in self.packages:
             
             # use buildout to run setup for us
             if os.path.isdir(path):
-                buildout.setup(args=[path,'sdist','--dist-dir', '%s'%tmpdir])
+                buildout.setup(args=[path,'clean','egg_info', '-RD','sdist','--dist-dir', '%s'%tmpdir ])
             else:
                 shutil.copy(path,tmpdir)
         tar,tarname = self.getDeployTar()

@@ -165,7 +165,8 @@ HOSTOUT_TEMPLATE = """
 [buildout]
 extends=%(buildoutfile)s
 #versions=versions
-newest=false
+# can't do non-newest till be peg versions
+#newest=false
 
 #Our own packaged eggs
 find-links+=%(eggdir)s
