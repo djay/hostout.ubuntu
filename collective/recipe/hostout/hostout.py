@@ -151,7 +151,7 @@ class HostOut:
             tgt = os.path.join(localdist_dir,dist)
             if os.path.exists(tgt):
                 os.remove(tgt)
-            os.rename(src, tgt)
+            shutil.move(src, tgt)
         os.removedirs(tmpdir)
         
     def getDSAKey(self):
