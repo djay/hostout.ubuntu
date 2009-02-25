@@ -55,11 +55,12 @@ class Recipe:
         self.dist_dir = options['dist_dir'] = dist_dir = self.options.get('dist_dir','dist')
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.buildout_cfg = options['buildout'] = options.get('buildout','buildout.cfg')
-        self.password = options.get('password',None) 
+        self.password = options.get('password','') 
 
     def install(self):
         logger = logging.getLogger(self.name)
-        user = self.options.get('user','root')
+        user = self.options.get('user','')
+        identityfile = self.options.get('identityfile','')
         effectiveuser = self.options.get('effective-user','plone')
         self.remote_dir = self.options.get('remote_path','~%s/buildout'%user)
         host = self.options['host']
@@ -69,13 +70,11 @@ class Recipe:
         options = self.options
         location = options['location']
         from os.path import dirname, abspath
-        here = abspath(dirname(__file__))
-        base = join(here,'fabfile.py')
         if not os.path.exists(location):
             os.mkdir(location)
-        fabfile = template % (self.name, [host], base)
-        fname = join(location,'fabfile.py')
-        open(fname, 'w+').write(fabfile)
+        #fabfile = template % (self.name, [host], base)
+        #fname = join(location,'fabfile.py')
+        #open(fname, 'w+').write(fabfile)
         extra_paths=[]
         packages = [p.strip() for p in self.buildout.get('buildout').get('develop').split()]
         packages += self.options.get('packages','').split()
@@ -89,23 +88,26 @@ class Recipe:
         
         hostout = self.genhostout()
         
-        args = 'fabfile=r"%s",\
-        user=r"%s",\
-        password=r"%s",\
-        effectiveuser="%s",\
+        args = 'effectiveuser="%s",\
         remote_dir=r"%s",\
         dist_dir=r"%s",\
         packages=%s,\
         buildout_location="%s",\
+        host="%s",\
+        user=r"%s",\
+        password=r"%s",\
+        identityfile="%s",\
         config_file="%s"'%\
-                (fname,
-                 user,
-                 self.password,
+                (
                  effectiveuser,
                  self.remote_dir,
                  self.dist_dir, 
                  str(packages), 
-                 self.buildout_dir, 
+                 self.buildout_dir,
+                 host,
+                 user,
+                 self.password,
+                 identityfile, 
                  hostout)
                 
         

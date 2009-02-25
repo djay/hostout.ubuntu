@@ -28,6 +28,7 @@ from itertools import chain
 import re
 from zc.buildout.buildout import Buildout
 from paramiko import DSSKey, PKey
+from paramiko import SSHConfig
 
 
 """
@@ -73,17 +74,24 @@ class HostOut:
                  dist_dir,
                  buildout_file,
                  config_file,
-                 packages):
+                 remote_dir,
+                 packages,
+                 host,user,password,identityfile):
     
         self.buildout_location = buildout_location
         self.dist_dir = dist_dir
         self.buildout_file = buildout_file
         self.config_file = config_file
+        self.remote_dir = remote_dir
         self.packages = packages
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
         if not os.path.exists(dist_dir):
             os.makedirs(dist_dir)
         self.tar = None
+        self.host = host
+        self.user = user
+        self.password = password
+        self.identityfile = identityfile
         
     def getDeployTar(self):
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
@@ -134,7 +142,6 @@ class HostOut:
         #python setup.py sdist bdist_egg
         tmpdir = tempfile.mkdtemp()
         localdist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
-        import pdb; pdb.set_trace()
         
         buildout = Buildout(self.buildout_file,[])
         for path in self.packages:
@@ -163,43 +170,97 @@ class HostOut:
         else:
             key = PKey.from_private_key_file(DSSKey, keyfile)
         return keyfile, str(key)
-            
-        
 
-def runfabric(fabfile, args):            
-    try:
+    def readsshconfig(self):
+        config = os.path.expanduser('~/.ssh/config')
+        if not os.path.exists(config):
+            return
+        f = open(config,'r')
+        sshconfig = SSHConfig()
+        sshconfig.parse(f)
+        f.close()
+        host = self.host
         try:
-            fabric._load_default_settings()
-            #fabfile = _pick_fabfile()
-            fabric.load(fabfile, fail='warn')
-            commands = fabric._parse_args(args)
-            fabric._validate_commands(commands)
-            fabric._execute_commands(commands)
-        finally:
-            fabric._disconnect()
-        print("Done.")
-    except SystemExit:
-        # a number of internal functions might raise this one.
-        raise
-    except KeyboardInterrupt:
-        print("Stopped.")
-        return False
-#    except:
-#        sys.excepthook(*sys.exc_info())
-#        # we might leave stale threads if we don't explicitly exit()
-#        return False
-    return True
+            host,port = host.split(':')
+        except:
+            port = None
+        opt = sshconfig.lookup(host)
+        
+        if port is None:
+            port = opt.get('port')
+        
+        host = opt.get('hostname', host)
+        if port:
+            host = "%s:%s" % (host,port)
+        self.host=host
+        if not self.identityfile:
+            self.identityfile = opt.get('identityfile',None)
+            if self.identityfile:
+                self.identityfile = os.path.expanduser(self.identityfile).strip()
+        if not self.user:
+            self.user=opt.get('user','root')
+        
+        
+    
+    def runfabric(self):            
+        if self.remote_dir[0] not in ['/','~']:
+            remote_dir = '~%s/%s' %(self.remote_dir,self.effective_user)
+    
+ #       args = (self.user,self.password,self.identityfile,self.remote_dir,self.dist_dir,self.packages)
+ #       args = ['deploy:user=%s,password=%s,identityfile=%s,remote_dir=%s,dist_dir=%s,package=%s'%args]
+        tar,package = self.getDeployTar()
+        tar.close()
+        dir,package = os.path.split(package)
+       
+ 
+        here = os.path.abspath(os.path.dirname(__file__))
+        fabfile = os.path.join(here,'fabfile.py')
+        
+        try:
+            try:
+                
+                fabric._load_default_settings()
+                #fabfile = _pick_fabfile()
+                fabric.load(fabfile, fail='warn')
+                #commands = fabric._parse_args(args)
+                #fabric._validate_commands(commands)
+                #fabric._execute_commands([('deploy',args)])
+                cmd = fabric.COMMANDS['deploy']
+                cmd(host=self.host,
+                    user=self.user,
+                    password=self.password,
+                    identityfile=self.identityfile,
+                    remote_dir=self.remote_dir,
+                    dist_dir=self.dist_dir,
+                    package=package)
+            finally:
+                fabric._disconnect()
+            print("Done.")
+        except SystemExit:
+            # a number of internal functions might raise this one.
+            raise
+        except KeyboardInterrupt:
+            print("Stopped.")
+            return False
+        #    except:
+        #        sys.excepthook(*sys.exc_info())
+        #        # we might leave stale threads if we don't explicitly exit()
+        #        return False
+        return True
+            
 
 
-def main(fabfile='fabfile.py',
-         user='root',
-         password=None,
+def main(
          effectiveuser='plone',
          remote_dir='buildout',
          buildout_file='buildout.cfg',
          dist_dir='dist', 
          packages=[],
          buildout_location='',
+         host=None,
+         user=None,
+         password=None,
+         identityfile=None,
          config_file='hostout.cfg'):
     "execute the fabfile we generated"
     
@@ -210,20 +271,15 @@ def main(fabfile='fabfile.py',
                       dist_dir,
                       buildout_file,
                       config_file,
-                      packages)
+                      remote_dir,
+                      packages,
+                      host,user,password,identityfile)
 
+    hostout.readsshconfig()
     hostout.release_eggs()
     hostout.package_buildout()
-    tar,package = hostout.getDeployTar()
-    tar.close()
-    dir,package = os.path.split(package)
+    hostout.runfabric()
     
-    if remote_dir[0] not in ['/','~']:
-        remote_dir = '~%s/%s' %(remote_dir,effective_user)
-    
-    args = ['deploy:user=%s,remote_dir=%s,dist_dir=%s,package=%s'%(user,remote_dir,dist_dir,package)]
-    runfabric(fabfile, args)
  
-     
         
         

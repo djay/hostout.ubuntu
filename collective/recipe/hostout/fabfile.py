@@ -57,12 +57,15 @@ def installhostout():
     run('cd $(install_dir) && $(start_cmd)')
 
 
-def deploy(user='plone', buildout_user='plone', remote_dir='buildout', dist_dir='dist', package='deploy_1',password=None):
+def deploy(host,user='plone', password=None, identityfile=None, buildout_user='plone', remote_dir='buildout', dist_dir='dist', package='deploy_1'):
     "Prints hello."
-    if password is not None:
+    if password:
         set(fab_password=password)
+    if identityfile:
+        set(fab_key=identityfile)
     set(
         fab_user=user,
+        fab_hosts=[host],
         effectiveuser=buildout_user,
         buildout_dir=remote_dir,
         unified='Plone-3.2.1r3-UnifiedInstaller',
