@@ -76,8 +76,8 @@ class Recipe:
         #fname = join(location,'fabfile.py')
         #open(fname, 'w+').write(fabfile)
         extra_paths=[]
-        packages = [p.strip() for p in self.buildout.get('buildout').get('develop').split()]
-        packages += self.options.get('packages','').split()
+        self.develop = [p.strip() for p in self.buildout.get('buildout').get('develop').split()]
+        packages = self.develop + self.options.get('packages','').split()
         #for package in self.options['buildout']['develop']:
         #    extra_paths+=[package]
         #extra_paths.append(os.path.join('c:\\python25'))
@@ -148,7 +148,7 @@ class Recipe:
         
         buildoutfile = relpath(self.buildout_cfg, base)
         dist_dir = relpath(self.dist_dir, base)
-        versions = ''
+        versions = self.getversions()
         install_base = os.path.dirname(self.remote_dir)
         buildout_cache = os.path.join(install_base,'buildout-cache')
         hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
@@ -160,15 +160,39 @@ class Recipe:
         hostoutf.write(hostout)
         hostoutf.close()
         return path
+
+    def getversions(self):
+        versions = {}
+        for part in self.buildout:
+            options = self.buildout[part]
+            if not options.get('recipe'):
+                continue
+            try:
+                recipe,subrecipe = options['recipe'].split(':')
+            except:
+                recipe=options['recipe']
+            egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
+            requirements, ws = egg.working_set()
+            for dist in ws.by_key.values():
+                project_name =  dist.project_name
+                version = dist.version
+                
+                versions[project_name] =version
+        spec = ""
+        for project_name,version in versions.items():
+            if version != '0.0':
+                spec+='%s = %s' % (project_name,version)+'\n'
+            else:
+                spec+='#%s = %s' % (project_name,version)+'\n'
+        return spec
                         
         
 
 HOSTOUT_TEMPLATE = """
 [buildout]
 extends=%(buildoutfile)s
-#versions=versions
-# can't do non-newest till be peg versions
-#newest=false
+versions=versions
+newest=false
 
 #Our own packaged eggs
 find-links+=%(eggdir)s
