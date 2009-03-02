@@ -148,7 +148,8 @@ class Recipe:
         
         buildoutfile = relpath(self.buildout_cfg, base)
         dist_dir = relpath(self.dist_dir, base)
-        versions = self.getversions()
+        #versions = self.getversions()
+        versions = ""
         install_base = os.path.dirname(self.remote_dir)
         buildout_cache = os.path.join(install_base,'buildout-cache')
         hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
@@ -171,8 +172,11 @@ class Recipe:
                 recipe,subrecipe = options['recipe'].split(':')
             except:
                 recipe=options['recipe']
-            egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
-            requirements, ws = egg.working_set()
+            try:
+                egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
+                requirements, ws = egg.working_set()
+            except:
+                continue
             for dist in ws.by_key.values():
                 project_name =  dist.project_name
                 version = dist.version
