@@ -62,7 +62,7 @@ def deploy(host,user='plone', password=None, identityfile=None, buildout_user='p
     if password:
         set(fab_password=password)
     if identityfile:
-        set(fab_key=identityfile)
+        set(fab_key_filename=identityfile)
     set(
         fab_user=user,
         fab_hosts=[host],
