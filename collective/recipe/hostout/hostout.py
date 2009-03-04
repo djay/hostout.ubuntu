@@ -29,6 +29,9 @@ import re
 from zc.buildout.buildout import Buildout
 from paramiko import DSSKey, PKey
 from paramiko import SSHConfig
+ 
+import time, random, md5
+
 
 
 """
@@ -92,6 +95,8 @@ class HostOut:
         self.user = user
         self.password = password
         self.identityfile = identityfile
+        #create new buildout so we can analyse the working set.
+        self.buildout = Buildout(self.buildout_file,[])
         
     def getDeployTar(self):
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
@@ -143,17 +148,30 @@ class HostOut:
         tmpdir = tempfile.mkdtemp()
         localdist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
         
-        buildout = Buildout(self.buildout_file,[])
+        releaseid = '%s-%s'%(time.time(),uuid())
+        
         for path in self.packages:
             
             # use buildout to run setup for us
             if os.path.isdir(path):
-                buildout.setup(args=[path,'clean','egg_info', '-RD','sdist','--dist-dir', '%s'%tmpdir ])
+                self.buildout.setup(args=[path,'clean',
+                                     'egg_info', 
+                                     '--tag-svn-revision',
+                                     '--tag-build','dev-'+releaseid,
+                                     'sdist',
+                                     '--dist-dir',
+                                     '%s'%tmpdir ])
             else:
                 shutil.copy(path,tmpdir)
         tar,tarname = self.getDeployTar()
 
+        specs = []
         for dist in os.listdir(tmpdir):
+            #work out version from name
+            name,version = dist.split('-', 1) 
+            version = version[:-7]
+            specs.append((name,version))
+            
             src = os.path.join(tmpdir,dist)
             tar.add(src, arcname=os.path.join(self.dist_dir,dist))
             tgt = os.path.join(localdist_dir,dist)
@@ -161,6 +179,15 @@ class HostOut:
                 os.remove(tgt)
             shutil.move(src, tgt)
         os.removedirs(tmpdir)
+        config = ConfigParser.ConfigParser()
+        config.read([self.config_file])
+        for name,version in specs:
+            config.set('versions',name,version)
+        fp = open(self.config_file,'w')
+        config.write(fp)
+        fp.close()
+ 
+
         
     def getDSAKey(self):
         keyfile = os.path.abspath(os.path.join(self.buildout_location,'hostout_dsa'))
@@ -279,7 +306,23 @@ def main(
     hostout.release_eggs()
     hostout.package_buildout()
     hostout.runfabric()
-    
+   
  
+
+def uuid( *args ):
+  """
+    Generates a universally unique ID.
+    Any arguments only create more randomness.
+  """
+  t = long( time.time() * 1000 )
+  r = long( random.random()*100000000000000000L )
+  try:
+    a = socket.gethostbyname( socket.gethostname() )
+  except:
+    # if we can't get a network address, just imagine one
+    a = random.random()*100000000000000000L
+  data = str(t)+' '+str(r)+' '+str(a)+' '+str(args)
+  data = md5.md5(data).hexdigest()
+  return data
         
         
