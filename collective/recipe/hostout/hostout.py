@@ -79,10 +79,13 @@ class HostOut:
                  config_file,
                  remote_dir,
                  packages,
-                 host,user,password,identityfile):
+                 effective_user,
+                 host,user,password,identityfile,
+                 start_cmd, stop_cmd):
     
         self.buildout_location = buildout_location
         self.dist_dir = dist_dir
+        self.effective_user = effective_user
         self.buildout_file = buildout_file
         self.config_file = config_file
         self.remote_dir = remote_dir
@@ -97,6 +100,8 @@ class HostOut:
         self.identityfile = identityfile
         #create new buildout so we can analyse the working set.
         self.buildout = Buildout(self.buildout_file,[])
+        self.start_cmd = start_cmd
+        self.stop_cmd = stop_cmd
         
     def getDeployTar(self):
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
@@ -253,13 +258,16 @@ class HostOut:
                 #fabric._validate_commands(commands)
                 #fabric._execute_commands([('deploy',args)])
                 cmd = fabric.COMMANDS['deploy']
-                cmd(host=self.host,
-                    user=self.user,
-                    password=self.password,
-                    identityfile=self.identityfile,
-                    remote_dir=self.remote_dir,
-                    dist_dir=self.dist_dir,
-                    package=package)
+#                cmd(host=self.host,
+#                    user=self.user,
+#                    password=self.password,
+#                    identityfile=self.identityfile,
+#                    remote_dir=self.remote_dir,
+#                    dist_dir=self.dist_dir,
+#                    package=package,
+#                    start_cmd=self.start_cmd,
+#                    stop_cmd=self.stop_cmd)
+                cmd(self, package)
             finally:
                 fabric._disconnect()
             print("Done.")
@@ -288,7 +296,9 @@ def main(
          user=None,
          password=None,
          identityfile=None,
-         config_file='hostout.cfg'):
+         config_file='hostout.cfg',
+         start_cmd=None,
+         stop_cmd=None):
     "execute the fabfile we generated"
     
 #    from os.path import dirname, abspath
@@ -300,7 +310,9 @@ def main(
                       config_file,
                       remote_dir,
                       packages,
-                      host,user,password,identityfile)
+                      effectiveuser,
+                      host,user,password,identityfile,
+                      start_cmd,stop_cmd)
 
     hostout.readsshconfig()
     hostout.release_eggs()

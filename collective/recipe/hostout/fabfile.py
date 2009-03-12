@@ -57,36 +57,43 @@ def installhostout():
     run('cd $(install_dir) && $(start_cmd)')
 
 
-def deploy(host,user='plone', password=None, identityfile=None, buildout_user='plone', remote_dir='buildout', dist_dir='dist', package='deploy_1'):
+def deploy(hostout, package):
+#           host,user='plone', 
+#           password=None, 
+#           identityfile=None, 
+#           buildout_user='plone', 
+#           remote_dir='buildout', 
+#           dist_dir='dist', 
+#           package='deploy_1',
+#           start_cmd='bin/supervisorctl reload && bin/supervisorctl start all',
+#           stop_cmd='bin/supervisorctl stop all' 
+#           ):
     "Prints hello."
-    if password:
-        set(fab_password=password)
-    if identityfile:
-        set(fab_key_filename=identityfile)
+    if hostout.password:
+        set(fab_password=hostout.password)
+    if hostout.identityfile:
+        set(fab_key_filename=hostout.identityfile)
     set(
-        fab_user=user,
-        fab_hosts=[host],
-        effectiveuser=buildout_user,
-        buildout_dir=remote_dir,
+        fab_user=hostout.user,
+        fab_hosts=[hostout.host],
+        effectiveuser=hostout.effective_user,
+        buildout_dir=hostout.remote_dir,
         unified='Plone-3.2.1r3-UnifiedInstaller',
         unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
-        install_dir=os.path.split(remote_dir)[0],
-        instance=os.path.split(remote_dir)[1],
+        install_dir=os.path.split(hostout.remote_dir)[0],
+        instance=os.path.split(hostout.remote_dir)[1],
     )
     preparebuildout()
     set(
-        buildout_user=user,
-        buildout_dir=remote_dir,
-        #fab_user='$(buildout_user)',
-        fab_user=user,
+        buildout_user=hostout.effective_user,
+        fab_user=hostout.user,
         #fab_key_filename="buildout_dsa",
-        dist_dir='dist',
-        install_dir=remote_dir,
+        dist_dir=hostout.dist_dir,
+        install_dir=hostout.remote_dir,
         hostout_package=package,
-        package_path=os.path.abspath(os.path.join(dist_dir,package)),
-        stop_cmd='bin/supervisorctl stop all',
-        start_cmd='bin/supervisorctl start all',
-        reload_cmd='bin/supervisorctl reload',
+        package_path=os.path.abspath(os.path.join(hostout.dist_dir,package)),
+        stop_cmd=hostout.stop_cmd,
+        start_cmd=hostout.start_cmd,
     )
     installhostout()
     

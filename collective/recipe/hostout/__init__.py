@@ -56,6 +56,8 @@ class Recipe:
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.buildout_cfg = options['buildout'] = options.get('buildout','buildout.cfg')
         self.password = options.get('password','') 
+        self.start_cmd = options.get('start_cmd',None)
+        self.stop_cmd = options.get('stop_cmd', None)
 
     def install(self):
         logger = logging.getLogger(self.name)
@@ -97,7 +99,9 @@ class Recipe:
         user=r"%s",\
         password=r"%s",\
         identityfile="%s",\
-        config_file="%s"'%\
+        config_file="%s",\
+        start_cmd="%s",\
+        stop_cmd="%s"'%\
                 (
                  effectiveuser,
                  self.remote_dir,
@@ -108,7 +112,10 @@ class Recipe:
                  user,
                  self.password,
                  identityfile, 
-                 hostout)
+                 hostout,
+                 self.start_cmd,
+                 self.stop_cmd
+                 )
                 
         
         zc.buildout.easy_install.scripts(
