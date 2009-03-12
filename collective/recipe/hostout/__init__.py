@@ -202,8 +202,6 @@ class Recipe:
 HOSTOUT_TEMPLATE = """
 [buildout]
 extends=%(buildoutfile)s
-versions=versions
-newest=false
 
 #Our own packaged eggs
 find-links+=%(eggdir)s
@@ -215,7 +213,9 @@ develop=
 eggs-directory=%(buildout_cache)s/eggs
 download-cache=%(buildout_cache)s/downloads
 
-
+versions=versions
+#non-newest set because we know exact versions we want
+#newest=false
 [versions]
 %(versions)s
 """
