@@ -59,6 +59,8 @@ class Recipe:
         self.start_cmd = options.get('start_cmd',None)
         self.stop_cmd = options.get('stop_cmd', None)
 
+
+
     def install(self):
         logger = logging.getLogger(self.name)
         user = self.options.get('user','')
@@ -155,8 +157,8 @@ class Recipe:
         
         buildoutfile = relpath(self.buildout_cfg, base)
         dist_dir = relpath(self.dist_dir, base)
-        #versions = self.getversions()
-        versions = ""
+        versions = self.getversions()
+        #versions = ""
         install_base = os.path.dirname(self.remote_dir)
         buildout_cache = os.path.join(install_base,'buildout-cache')
         hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
@@ -171,23 +173,21 @@ class Recipe:
 
     def getversions(self):
         versions = {}
-        for part in self.buildout:
-            options = self.buildout[part]
+        for part in [p.strip() for p in self.buildout['buildout']['parts'].split()]:
+            if part == self.name:
+                continue
+            options = self.buildout.get(part)
             if not options.get('recipe'):
                 continue
             try:
                 recipe,subrecipe = options['recipe'].split(':')
             except:
                 recipe=options['recipe']
-            try:
-                egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
-                requirements, ws = egg.working_set()
-            except:
-                continue
+            egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
+            requirements, ws = egg.working_set()
             for dist in ws.by_key.values():
                 project_name =  dist.project_name
                 version = dist.version
-                
                 versions[project_name] =version
         spec = ""
         for project_name,version in versions.items():
@@ -215,7 +215,7 @@ download-cache=%(buildout_cache)s/downloads
 
 versions=versions
 #non-newest set because we know exact versions we want
-#newest=false
+newest=false
 [versions]
 %(versions)s
 """
