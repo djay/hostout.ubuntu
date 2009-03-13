@@ -49,12 +49,12 @@ def installhostout():
     local('test -f $(package_path)')
     #import pdb; pdb.set_trace()
     put('$(package_path)', '/tmp/$(hostout_package)')
-    run('cd $(install_dir) && $(stop_cmd) || echo unable to stop application')
+    sudo('$(stop_cmd)||echo unable to stop application')
     #need a way to make sure ownership of files is ok
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
     sudo('sh -c "cd $(install_dir) && bin/buildout -c hostout.cfg"')
 #    run('cd $(install_dir) && $(reload_cmd)')
-    run('cd $(install_dir) && $(start_cmd)')
+    sudo('$(start_cmd)')
 
 
 def deploy(hostout, package):
