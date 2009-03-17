@@ -69,7 +69,7 @@ class Recipe:
         self.remote_dir = self.options.get('remote_path','~%s/buildout'%user)
         host = self.options['host']
 <<<<<<< HEAD:collective/recipe/hostout/__init__.py
-        #import pdb; pdb.set_trace()
+
 =======
 
 >>>>>>> squash:collective/recipe/hostout/__init__.py

@@ -48,7 +48,7 @@ def installhostout():
     
     local('test -f $(package_path)')
 <<<<<<< HEAD:collective/recipe/hostout/fabfile.py
-    #import pdb; pdb.set_trace()
+
 =======
 
 >>>>>>> squash:collective/recipe/hostout/fabfile.py
