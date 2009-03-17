@@ -23,7 +23,6 @@ import ConfigParser
 import sys
 from zc.buildout import buildout
 from os.path import join, exists
-from collective.releaser import project
 from itertools import chain
 import re
 from zc.buildout.buildout import Buildout
@@ -131,11 +130,6 @@ class HostOut:
             relative = file[len(self.buildout_location)+1:] #TODO
             tar.add(file,arcname=relative)
         
-        #tarball = '%s/%s_1.tgz'%(folder,filename+'re')
-        #project.project_eggs(cfg=config_file, tarball=tarball)
-        
-        
-        #get all files and put them in a tar
         
     def pin_versions(self,fname):
         "create a .hostoutVersions.cfg which contains the pinned versions"
@@ -252,21 +246,8 @@ class HostOut:
             try:
                 
                 fabric._load_default_settings()
-                #fabfile = _pick_fabfile()
                 fabric.load(fabfile, fail='warn')
-                #commands = fabric._parse_args(args)
-                #fabric._validate_commands(commands)
-                #fabric._execute_commands([('deploy',args)])
                 cmd = fabric.COMMANDS['deploy']
-#                cmd(host=self.host,
-#                    user=self.user,
-#                    password=self.password,
-#                    identityfile=self.identityfile,
-#                    remote_dir=self.remote_dir,
-#                    dist_dir=self.dist_dir,
-#                    package=package,
-#                    start_cmd=self.start_cmd,
-#                    stop_cmd=self.stop_cmd)
                 cmd(self, package)
             finally:
                 fabric._disconnect()
@@ -297,8 +278,8 @@ def main(
          password=None,
          identityfile=None,
          config_file='hostout.cfg',
-         start_cmd=None,
-         stop_cmd=None):
+         start_cmd='',
+         stop_cmd=''):
     "execute the fabfile we generated"
     
 #    from os.path import dirname, abspath
