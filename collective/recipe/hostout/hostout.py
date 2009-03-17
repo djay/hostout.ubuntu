@@ -337,4 +337,3 @@ def uuid( *args ):
   data = md5.md5(data).hexdigest()
   return data
         
-        

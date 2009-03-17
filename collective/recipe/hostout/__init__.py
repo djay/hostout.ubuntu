@@ -68,7 +68,11 @@ class Recipe:
         effectiveuser = self.options.get('effective-user','plone')
         self.remote_dir = self.options.get('remote_path','~%s/buildout'%user)
         host = self.options['host']
+<<<<<<< HEAD:collective/recipe/hostout/__init__.py
         #import pdb; pdb.set_trace()
+=======
+
+>>>>>>> squash:collective/recipe/hostout/__init__.py
         
         requirements, ws = self.egg.working_set()
         options = self.options
@@ -271,4 +275,8 @@ def relpath(target, base=os.curdir):
     rel_list = [os.pardir] * (len(base_list)-i) + target_list[i:]
     return os.path.join(*rel_list)
 
+<<<<<<< HEAD:collective/recipe/hostout/__init__.py
     
+=======
+    
+>>>>>>> squash:collective/recipe/hostout/__init__.py

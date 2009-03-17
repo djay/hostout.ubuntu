@@ -47,7 +47,11 @@ def installhostout():
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
     
     local('test -f $(package_path)')
+<<<<<<< HEAD:collective/recipe/hostout/fabfile.py
     #import pdb; pdb.set_trace()
+=======
+
+>>>>>>> squash:collective/recipe/hostout/fabfile.py
     put('$(package_path)', '/tmp/$(hostout_package)')
     sudo('$(stop_cmd)||echo unable to stop application')
     #need a way to make sure ownership of files is ok
@@ -98,4 +102,8 @@ def deploy(hostout, package):
     installhostout()
     
 
+<<<<<<< HEAD:collective/recipe/hostout/fabfile.py
     
+=======
+    
+>>>>>>> squash:collective/recipe/hostout/fabfile.py
