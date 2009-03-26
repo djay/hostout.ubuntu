@@ -1,49 +1,42 @@
 
-Hostout. one click deployment for plone.
+Hostout:  one click deployment for buildout based applications
+==============================================================
 
-Goals:
-1. solution for deploying plone with just a local buildout, ssh access and no server experience.
-  - designed to lower the barrier of entry for hobbyists wanting to host. 
-  - $20/m plone site in 2min.
-  - few dependencies. clean server install and no source control or 3rd party servers needed.
-  - work with buildout so that eventually hostout can be a part of unifiedinstaller
-2. work with professional setups where source control and private pypi servers exist.
-  - put an easy to implement best practices deployment model in place so you don't have to think hard to make controlled
-    repeatable buildouts
-  - be SCM neutral - plugin archetecture to use git or svn or whatever. 
-3. Make repeatable best practice deployments
-  - make it easy to roll back to a previous version from the client
-  - make it possible to have more than one server each with differetn versions of code - staging.
-  - make it easy to work with databases between dev, staging and production.
-4. If possible not assume plone/zope. Allow it to be a buildout based deployer.
+collective.hostout is a zc.buildout recipe used to create a script for deploying your buildout.
+It takes a number of options:
 
+host
+	the IP or hostname of the host to deploy to. by default it will connect to port 22 using ssh.
+	You can override the port by using hostname:port
 
-How will it do this?
+user
+	The user which hostout will attempt to login to your host as. Defaults to root
 
-Recipe collects info on eggs used and creates a deployment script. Lets you choose where you want to deploy it
-and which buildout file to deploy.
-Deployment will
-- work with creating version numbers of dev packages and buildout.
-- might need to halt if source isn't in state to release 
-- handle checking in and storing versions of code to be deployed. make sure we have a solid tags abnd pointers
-  to everything in the whole project release.
-  
+password
+	The password for the login user. If not given then hostout will ask each time.
 
-  
+buildout
+	The configuration file you which to build on the remote host. Note this doesn't have
+	to be the same .cfg as the hostout section is in but the versions of the eggs will be determined
+	from the buildout with the hostout section in. Defaults to buildout.cfg
 
-Create a release of each dev egg, auto incrementing the version numbers. To do this it will have to compare the code to a hash to see if its changed. The release is a egg which is zipped and sent to folder on the server
+effective-user
+	The user which will own the buildout files. Defaults to #TODO
+	
+remote_path
+	The absolute path on the remote host where the buildout will be created. 
+	Defaults to ~${hostout:effective-user}/buildout 
+	
+start_cmd
+	A sh command to start up your application. This will be run as root. It is run after every
+	successful running of buildout on the remote host.
+	Defaults to ${buildout:bin-directory}/supervisord
 
-So all dev references are in dev.cfg but not in prod.cfg
+stop_cmd
+	A sh command to shutdown your application. This will be run as root. It is run before every
+	buildout on the remote host. If this command fails it will be ignored.
+	Defaults to ${buildout:bin-directory}/supervisorctl shutdown
 
-Then we need to pin the versions of all the eggs. We can use buildout to tell us what the current versions are and put that in a versions.cfg file (which only gets used in production)
-
-Then we need to version the buildout. The reason is we may want to roll back the server to a previous setup. So we'd tar the buildout files, hash it and date it, send it to a dir on the server and then kill the old files and add the new.
-
-Backup the db to the same buildout tag, stop servers, rerun buildout and then restart the servers.
-
-To roll back we can issue the roll back command which will copy back the last buildout files
-
---
 
 We have a buildout which we want to deploy to a brand new host
 
@@ -54,7 +47,7 @@ We add collective.recipe.hostout to our development buildout
     ... [buildout]
     ... parts = deploy
     ...
-    ... [deploy]
+    ... [hostout]
     ... recipe = collective.recipe.hostout
     ... host = localhost
     ... """
@@ -62,17 +55,33 @@ We add collective.recipe.hostout to our development buildout
 Now we run the buildout
  
     >>> print system('bin/buildout'),
-    Installing deploy.
-    foo: Creating deployment script bin/deploy
+    ...
+    Installing hostout.
+    hostout: Creating deployment script bin/hostout
+    hostout: Creating hostout.cfg with pinned buildout versions
+    ...
 
 The recipe also creates the parts directory:
 
     >>> ls(sample_buildout, 'parts')
     d  hostout
 
-We can run the deployment script the first time
+We can run the hostout script the first time. It will 
+1. package our release
+2. send it to the server
+3. create a buildout environment running under a virtualenv
+4. run a buildout pinned to the eggs that were selected when you last ran buildout locally
+5. start up your application
 
-    >>> print system('bin/deploy'),
+    >>> print system('bin/hostout'),
+    Creating release 45454345345
+    Producing source distribution for src/example with version 2343243434
+    ...
+    Packaged eggs and buildout into deploy-5445454.tgz
+    ...
+ 	[localhost] put: /Users/dylanjay/Projects/csiro/dist/deploy_1.tgz -> /tmp/deploy_1.tgz
+    
+    
     Connecting to localhost.
     User 'plone' not found or unable to connect
     If this is the first time running this script please enter your root credentials
@@ -92,22 +101,91 @@ We can run the deployment script the first time
     Deployment complete at verson 0.1
     
 We now have a live version of our buildout deployed and running on our host.
-    
 
-Thinking out loud here, the recipe would do the following,
+Todo list
+---------
 
-Create a release of each dev egg, auto incrementing the version numbers. To do this it will have to compare the code to a hash to see if its changed. The release is a egg which is zipped and sent to folder on the server
+- Handle multiple hosts and multiple locations better including simultaneous deployment.
 
-So all dev references are in dev.cfg but not in prod.cfg
+- Database handling including backing up, moving between development, staging and production
+  regardless of location.
 
-Then we need to pin the versions of all the eggs. We can use buildout to tell us what the current versions are and put that in a versions.cfg file (which only gets used in production)
+- Integrate with SCM to implement an optional check to not deploy unless committed.
 
-Then we need to version the buildout. The reason is we may want to roll back the server to a previous setup. So we'd tar the buildout files, hash it and date it, send it to a dir on the server and then kill the old files and add the new.
+- Integrate with SCM to tag all parts so deployments can be rolled back.
 
-Backup the db to the same buildout tag, stop servers, rerun buildout and then restart the servers.
+- Integrate with SCM to use SCM version numbers.
 
-To roll back we can issue the roll back command which will copy back the last buildout files
+- Handle basic rollback when no SCM exists.
 
---
-At the start it would 
+- Setup host with password-less ssh login.
+
+- Don't upload eggs unless they have changed.
+
+- Support firewalled servers by an optional tunnel back to a client side web proxy.
+
+- Help deploy DNS settings, possibly by hosting company specific plugins
+
+Frequently asked questions
+--------------------------    
+Who should use this?
+
+	Hostout was primarily created to solve the problem of how to create a hosted
+	Plone site for $20 in 20minutes even with no knowledge of linux system 
+	administration. It is designed to solve the question "Now I've downloaded and installed
+	Plone on my windows machine, how do I get a real site?"
+	However hostout is useful for:
+	
+	- anyone who wants a quick solution for setting up a new host for a buildout based application
+	and then repeatedly redeploying to it, including django and other buildout based apps.
+
+	- anyone who doesn't want to deal with learning how to setup and administer a linux server
+
+	- professionals who use a develop/test/commit/deploy cycle who don't already have their own
+	custom deployment processes 	
+
+
+Why not use git/svn/hg/bzr to pull the code onto the server?
+
+	a) it means you have to use SCM to deploy. I wanted a story where someone can download plone/django, 
+	customise it a little and then host it in as few steps as possible.
+
+	b) It means you don't have to install the SCM on the host and handle that in a SCM neurtral way... 
+	I use got, most plone people use svn, I might look at bzr... its a mess.
+
+	c) Really you shouldn't be hacking the configuration on your host. 
+	Good development means you test things locally, get it working. check it in and then deploy. 
+	Hostout is designed to support that model. Everyone one has to have a developement environment to deploy.
+
+	d) We want to be SCM neutral.
+
+Why not use collective.releaser or similar to release to a private pypi index?
+
+	It's a lot more complicated to setup and isn't really needed when your eggs are custom just
+	to the application which is hosted in only one place. There is nothing to stop you
+	releasing your eggs seperatly.
+
+Why is it a buildout recipe?
+
+	Applications like Plone use buildout to install and configure installations on all platforms.
+	Adding an extra few lines to the default buildout seemed the easiest solution to allowing those
+	users to take the next step after installing Plone locally, to deploying it remotely.
+
+	
+What kinds of hosts is it known to work with?
+
+	It is designed to work with newly installed linux distributions but should 
+	work with almost any linux host.
+	Hostout currently uses the plone unified installer to setup a buildout 
+	environment. That is designed to work on a large number of linux based
+	systems. Of course what you put in your own buildout will influence the
+	results too.
+
+What kind of applications will it work with?
+
+	Hostout deploys buildout based solutions. As long as your code can be built
+	using buildout and any custom code is in source eggs then hostout should work
+	for you.
+
+
 

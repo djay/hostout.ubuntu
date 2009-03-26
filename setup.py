@@ -21,7 +21,7 @@ def read(*rnames):
 name = "collective.recipe.hostout"
 setup(
     name = name,
-    version = "0.1.1",
+    version = "0.1.2",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = "ZC Buildout recipe to create a tool uploading and deploying to a server",
@@ -37,14 +37,7 @@ setup(
         '**********************\n'
         + '\n' +
         read('collective', 'recipe', 'hostout', 'README.txt')
-        + '\n' +
-        'Download Cache\n'
-        '**************\n'
-        'The recipe supports use of a download cache in the same way\n'
-        'as zc.buildout. See downloadcache.txt for details\n'
-        + '\n' +
-        'Download\n'
-        '**********************\n'
+        + '\n'
         ),
 
     packages = find_packages(),
