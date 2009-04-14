@@ -116,15 +116,23 @@ Todo list
 
 - Integrate with SCM to use SCM version numbers.
 
-- Handle basic rollback when no SCM exists.
+- Handle basic rollback when no SCM exists, for instance when buildout fails.
 
-- Setup host with password-less ssh login.
+- Automatically setup host with password-less ssh login.
 
 - Don't upload eggs unless they have changed.
 
+- Help deploy DNS settings, possibly by hosting company specific plugins
+
+- Get rid of fabric and use paramiko directly.
+
+- Incorporate unified installer environment setup scripts directly.
+
+- Get hostout used in unifiedinstaller or buildout builder so first time users
+  of Plone can easily host Plone.
+
 - Support firewalled servers by an optional tunnel back to a client side web proxy.
 
-- Help deploy DNS settings, possibly by hosting company specific plugins
 
 Frequently asked questions
 --------------------------    
