@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
 
-name = "collective.recipe.hostout"
+name = "collective.hostout"
 setup(
     name = name,
     version = "0.1.2",
@@ -42,8 +42,8 @@ setup(
 
     packages = find_packages(),
     include_package_data = True,
-#    data_files = [('.', ['*.txt'])],
-#   package_data = {'':('*.txt')},
+    data_files = [('.', ['*.txt'])],
+    package_data = {'':('*.txt')},
     namespace_packages = ['collective', 'collective.recipe'],
     install_requires = ['zc.buildout', 'setuptools', 'Fabric<0.1.0','functools'],
     entry_points = {'zc.buildout':

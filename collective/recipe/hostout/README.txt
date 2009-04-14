@@ -1,8 +1,5 @@
 
-Hostout:  one click deployment for buildout based applications
-==============================================================
 
-collective.hostout is a zc.buildout recipe used to create a script for deploying your buildout.
 It takes a number of options:
 
 host
@@ -67,10 +64,15 @@ The recipe also creates the parts directory:
     d  hostout
 
 We can run the hostout script the first time. It will 
+
 1. package our release
+
 2. send it to the server
+
 3. create a buildout environment running under a virtualenv
+
 4. run a buildout pinned to the eggs that were selected when you last ran buildout locally
+
 5. start up your application
 
     >>> print system('bin/hostout'),
@@ -136,6 +138,7 @@ Todo list
 
 Frequently asked questions
 --------------------------    
+
 Who should use this?
 
 	Hostout was primarily created to solve the problem of how to create a hosted
@@ -144,26 +147,20 @@ Who should use this?
 	Plone on my windows machine, how do I get a real site?"
 	However hostout is useful for:
 	
-	- anyone who wants a quick solution for setting up a new host for a buildout based application
-	and then repeatedly redeploying to it, including django and other buildout based apps.
+	- anyone who wants a quick solution for setting up a new host for a buildout based application and then repeatedly redeploying to it, including django and other buildout based apps.
 
 	- anyone who doesn't want to deal with learning how to setup and administer a linux server
 
-	- professionals who use a develop/test/commit/deploy cycle who don't already have their own
-	custom deployment processes 	
+	- professionals who use a develop/test/commit/deploy cycle who don't already have their own custom deployment processes 	
 
 
 Why not use git/svn/hg/bzr to pull the code onto the server?
 
-	a) it means you have to use SCM to deploy. I wanted a story where someone can download plone/django, 
-	customise it a little and then host it in as few steps as possible.
+	a) it means you have to use SCM to deploy. I wanted a story where someone can download plone/django, customise it a little and then host it in as few steps as possible.
 
-	b) It means you don't have to install the SCM on the host and handle that in a SCM neurtral way... 
-	I use got, most plone people use svn, I might look at bzr... its a mess.
+	b) It means you don't have to install the SCM on the host and handle that in a SCM neurtral way... 	I use got, most plone people use svn, I might look at bzr... its a mess.
 
-	c) Really you shouldn't be hacking the configuration on your host. 
-	Good development means you test things locally, get it working. check it in and then deploy. 
-	Hostout is designed to support that model. Everyone one has to have a developement environment to deploy.
+	c) Really you shouldn't be hacking the configuration on your host. Good development means you test things locally, get it working. check it in and then deploy. Hostout is designed to support that model. Everyone one has to have a developement environment to deploy.
 
 	d) We want to be SCM neutral.
 
