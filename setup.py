@@ -42,11 +42,11 @@ setup(
 
     packages = find_packages(),
     include_package_data = True,
-    data_files = [('.', ['*.txt'])],
-    package_data = {'':('*.txt')},
+#    data_files = [('.', ['*.txt'])],
+#    package_data = {'':('*.txt')},
     namespace_packages = ['collective', 'collective.recipe'],
     install_requires = ['zc.buildout', 'setuptools', 'Fabric<0.1.0','functools'],
     entry_points = {'zc.buildout':
-                    ['default = %s:Recipe' % name]},
+                    ['default = collective.hostout:Recipe']},
     zip_safe = True,
     )

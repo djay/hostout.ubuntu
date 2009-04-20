@@ -187,17 +187,18 @@ class Recipe:
 
 HOSTOUT_TEMPLATE = """
 [buildout]
-extends=%(buildoutfile)s
+extends = %(buildoutfile)s
 
 #Our own packaged eggs
-find-links+=%(eggdir)s
+find-links += 
+    %(eggdir)s
 
 #prevent us looking for them as developer eggs
 develop=
 
 #Match to unifiedinstaller
-eggs-directory=%(buildout_cache)s/eggs
-download-cache=%(buildout_cache)s/downloads
+eggs-directory = %(buildout_cache)s/eggs
+download-cache = %(buildout_cache)s/downloads
 
 versions=versions
 #non-newest set because we know exact versions we want
