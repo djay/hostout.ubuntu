@@ -149,31 +149,40 @@ class HostOut:
 
         releaseid = '%s_%s'%(time.time(),uuid())
 
+        donepackages = []
         for path in self.packages:
 
             # use buildout to run setup for us
             if os.path.isdir(path):
-                self.buildout.setup(args=[path,
+                res = self.buildout.setup(args=[path,
+                                     'clean',
                                      'egg_info',
                                      '--tag-svn-revision',
                                      '--tag-build','dev_'+releaseid,
                                      #'sdist',
+                                     #'--formats=zip', #fix bizzare gztar truncation on windows
                                       'bdist_egg',
                                      '--dist-dir',
                                      '%s'%tmpdir,
-                                     #'--formats=zip', #fix bizzare gztar truncation on windows
                                       ])
             else:
                 shutil.copy(path,tmpdir)
+            donepackages.append(path)
+            assert len(donepackages) == len(os.listdir(tmpdir)), "Egg wasn't generated. See errors above"
         tar,tarname = self.getDeployTar()
 
         specs = []
         for dist in os.listdir(tmpdir):
             #work out version from name
-            name,version = dist.split('-', 1)
+            name,tail = dist.split('-', 1)
             #HACK: must be a better way to get full version spec
-            version = version[:version.find(releaseid)+len(releaseid)]
-            specs.append((name,version))
+            version = tail[:tail.find(releaseid)+len(releaseid)]
+            for end in ['.tar.gz','.zip','.egg','.tar','.tgz']:
+                if version != tail:
+                    specs.append((name,version))
+                    break
+                else:
+                    version = tail[:tail.find(end)]
 
             src = os.path.join(tmpdir,dist)
             tar.add(src, arcname=os.path.join(self.dist_dir,dist))
@@ -182,6 +191,8 @@ class HostOut:
                 os.remove(tgt)
             shutil.move(src, tgt)
         os.removedirs(tmpdir)
+
+        assert len(specs) == len(self.packages)
         config = ConfigParser.ConfigParser()
         config.read([self.config_file])
         for name,version in specs:
