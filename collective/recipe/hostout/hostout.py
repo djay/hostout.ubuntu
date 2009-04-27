@@ -76,6 +76,7 @@ class HostOut:
                  dist_dir,
                  buildout_file,
                  config_file,
+                 extra_config,
                  remote_dir,
                  packages,
                  effective_user,
@@ -101,6 +102,7 @@ class HostOut:
         self.buildout = Buildout(self.buildout_file,[])
         self.start_cmd = start_cmd
         self.stop_cmd = stop_cmd
+        self.extra_config = extra_config
 
     def getDeployTar(self):
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
@@ -123,6 +125,7 @@ class HostOut:
             raise "Invalid config file"
 
         files = get_all_extends(config_file)
+        files += [f.strip() for f in self.extra_config.split('\n') if f.strip()]
 
         tar,tarname = self.getDeployTar()
 
@@ -293,6 +296,7 @@ def main(
          password=None,
          identityfile=None,
          config_file='hostout.cfg',
+         extra_config='',
          start_cmd='',
          stop_cmd=''):
     "execute the fabfile we generated"
@@ -304,6 +308,7 @@ def main(
                       dist_dir,
                       buildout_file,
                       config_file,
+                      extra_config,
                       remote_dir,
                       packages,
                       effectiveuser,

@@ -59,19 +59,19 @@ class Recipe:
         self.identityfile = self.options.get('identityfile','')
         self.effectiveuser = self.options.get('effective-user','plone')
         self.host = self.options['host']
-        self.password = options.get('password','') 
+        self.password = options.get('password','')
         self.start_cmd = options.get('start_cmd','')
         self.stop_cmd = options.get('stop_cmd', '')
         #replace any references to the localbuildout dir with the remote buildout dir
         self.remote_dir = self.options.get('remote_path','~%s/buildout'%self.user)
         self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
         self.start_cmd = self.start_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
-
+        self.extra_config = self.options.get('extra_config','')
 
 
     def install(self):
         logger = logging.getLogger(self.name)
-        
+
         requirements, ws = self.egg.working_set()
         options = self.options
         location = options['location']
@@ -86,9 +86,9 @@ class Recipe:
         packages = self.develop + self.options.get('packages','').split()
         config_file = self.buildout_cfg
 
-        
+
         hostout = self.genhostout()
-        
+
         args = 'effectiveuser="%s",\
         remote_dir=r"%s",\
         dist_dir=r"%s",\
@@ -99,24 +99,26 @@ class Recipe:
         password=r"%s",\
         identityfile="%s",\
         config_file="%s",\
+        extra_config="%s",\
         start_cmd="%s",\
         stop_cmd="%s"'%\
                 (
                  self.effectiveuser,
                  self.remote_dir,
-                 self.dist_dir, 
-                 str(packages), 
+                 self.dist_dir,
+                 str(packages),
                  self.buildout_dir,
                  self.host,
                  self.user,
                  self.password,
-                 self.identityfile, 
+                 self.identityfile,
                  hostout,
+                 self.extra_config,
                  self.start_cmd,
                  self.stop_cmd
                  )
-                
-        
+
+
         zc.buildout.easy_install.scripts(
                 [(self.name, 'collective.recipe.hostout.hostout', 'main')],
                 ws, options['executable'], options['bin-directory'],
@@ -137,12 +139,12 @@ class Recipe:
     def genhostout(self):
         """ generate a new buildout file which pins versions and uses our deployment distributions"""
 
-    
+
         base = self.buildout_dir
         dist_dir = os.path.abspath(os.path.join(self.buildout_dir,self.dist_dir))
         if not os.path.exists(dist_dir):
             os.makedirs(dist_dir)
-        
+
         buildoutfile = relpath(self.buildout_cfg, base)
         dist_dir = relpath(self.dist_dir, base)
         versions = self.getversions()
@@ -153,7 +155,7 @@ class Recipe:
                                           eggdir=dist_dir,
                                           versions=versions,
                                           buildout_cache=buildout_cache)
-        path = os.path.join(base,'hostout.cfg')     
+        path = os.path.join(base,'hostout.cfg')
         hostoutf = open(path,'w')
         hostoutf.write(hostout)
         hostoutf.close()
@@ -182,15 +184,15 @@ class Recipe:
             else:
                 spec+='#%s = %s' % (project_name,version)+'\n'
         return spec
-                        
-        
+
+
 
 HOSTOUT_TEMPLATE = """
 [buildout]
 extends = %(buildoutfile)s
 
 #Our own packaged eggs
-find-links += 
+find-links +=
     %(eggdir)s
 
 #prevent us looking for them as developer eggs
@@ -209,7 +211,7 @@ versions=versions
 
 
 
-    
+
 
 
 template = """
@@ -218,7 +220,7 @@ set(
         fab_hosts = %s,
 )
 load(r'%s')
-"""    
+"""
 
 
 # relpath.py
