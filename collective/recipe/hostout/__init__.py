@@ -55,21 +55,23 @@ class Recipe:
         self.dist_dir = options['dist_dir'] = dist_dir = self.options.get('dist_dir','dist')
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.buildout_cfg = options['buildout'] = options.get('buildout','buildout.cfg')
-        self.password = options.get('password','') 
-        self.start_cmd = options.get('start_cmd',None)
-        self.stop_cmd = options.get('stop_cmd', None)
-
+        self.user = self.options.get('user','')
+        self.identityfile = self.options.get('identityfile','')
+        self.effectiveuser = self.options.get('effective-user','plone')
+        self.host = self.options['host']
+        self.password = options.get('password','')
+        self.start_cmd = options.get('start_cmd','')
+        self.stop_cmd = options.get('stop_cmd', '')
+        #replace any references to the localbuildout dir with the remote buildout dir
+        self.remote_dir = self.options.get('remote_path','~%s/buildout'%self.user)
+        self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
+        self.start_cmd = self.start_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
+        self.extra_config = self.options.get('extra_config','')
 
 
     def install(self):
         logger = logging.getLogger(self.name)
-        user = self.options.get('user','')
-        identityfile = self.options.get('identityfile','')
-        effectiveuser = self.options.get('effective-user','plone')
-        self.remote_dir = self.options.get('remote_path','~%s/buildout'%user)
-        host = self.options['host']
 
-        
         requirements, ws = self.egg.working_set()
         options = self.options
         location = options['location']
@@ -82,16 +84,11 @@ class Recipe:
         extra_paths=[]
         self.develop = [p.strip() for p in self.buildout.get('buildout').get('develop').split()]
         packages = self.develop + self.options.get('packages','').split()
-        #for package in self.options['buildout']['develop']:
-        #    extra_paths+=[package]
-        #extra_paths.append(os.path.join('c:\\python25'))
-        #options['executable'] = 'c:\\Python25\\python.exe'
         config_file = self.buildout_cfg
 
-#        buildoutroot = os.getcwd()
-        
+
         hostout = self.genhostout()
-        
+
         args = 'effectiveuser="%s",\
         remote_dir=r"%s",\
         dist_dir=r"%s",\
@@ -102,24 +99,26 @@ class Recipe:
         password=r"%s",\
         identityfile="%s",\
         config_file="%s",\
+        extra_config="%s",\
         start_cmd="%s",\
         stop_cmd="%s"'%\
                 (
-                 effectiveuser,
+                 self.effectiveuser,
                  self.remote_dir,
-                 self.dist_dir, 
-                 str(packages), 
+                 self.dist_dir,
+                 str(packages),
                  self.buildout_dir,
-                 host,
-                 user,
+                 self.host,
+                 self.user,
                  self.password,
-                 identityfile, 
+                 self.identityfile,
                  hostout,
+                 self.extra_config,
                  self.start_cmd,
                  self.stop_cmd
                  )
-                
-        
+
+
         zc.buildout.easy_install.scripts(
                 [(self.name, 'collective.recipe.hostout.hostout', 'main')],
                 ws, options['executable'], options['bin-directory'],
@@ -129,15 +128,6 @@ class Recipe:
 #                arguments='host, port, socket_path', extra_paths=extra_paths
                 )
 
-
-        # now unpack and work as normal
-        tmp = tempfile.mkdtemp('buildout-'+self.name)
-#        logger.info('Unpacking and configuring')
-#        setuptools.archive_util.unpack_archive(fname, tmp)
-
-#        here = os.getcwd()
-#        if not os.path.exists(dest):
-#            os.mkdir(dest)
 
 
         return location
@@ -149,12 +139,12 @@ class Recipe:
     def genhostout(self):
         """ generate a new buildout file which pins versions and uses our deployment distributions"""
 
-    
+
         base = self.buildout_dir
         dist_dir = os.path.abspath(os.path.join(self.buildout_dir,self.dist_dir))
         if not os.path.exists(dist_dir):
             os.makedirs(dist_dir)
-        
+
         buildoutfile = relpath(self.buildout_cfg, base)
         dist_dir = relpath(self.dist_dir, base)
         versions = self.getversions()
@@ -165,7 +155,7 @@ class Recipe:
                                           eggdir=dist_dir,
                                           versions=versions,
                                           buildout_cache=buildout_cache)
-        path = os.path.join(base,'hostout.cfg')     
+        path = os.path.join(base,'hostout.cfg')
         hostoutf = open(path,'w')
         hostoutf.write(hostout)
         hostoutf.close()
@@ -174,8 +164,6 @@ class Recipe:
     def getversions(self):
         versions = {}
         for part in [p.strip() for p in self.buildout['buildout']['parts'].split()]:
-            if part == self.name:
-                continue
             options = self.buildout.get(part)
             if not options.get('recipe'):
                 continue
@@ -196,33 +184,34 @@ class Recipe:
             else:
                 spec+='#%s = %s' % (project_name,version)+'\n'
         return spec
-                        
-        
+
+
 
 HOSTOUT_TEMPLATE = """
 [buildout]
-extends=%(buildoutfile)s
+extends = %(buildoutfile)s
 
 #Our own packaged eggs
-find-links+=%(eggdir)s
+find-links +=
+    %(eggdir)s
 
 #prevent us looking for them as developer eggs
 develop=
 
 #Match to unifiedinstaller
-eggs-directory=%(buildout_cache)s/eggs
-download-cache=%(buildout_cache)s/downloads
+eggs-directory = %(buildout_cache)s/eggs
+download-cache = %(buildout_cache)s/downloads
 
 versions=versions
 #non-newest set because we know exact versions we want
-newest=false
+#newest=false
 [versions]
 %(versions)s
 """
 
 
 
-    
+
 
 
 template = """
@@ -231,7 +220,7 @@ set(
         fab_hosts = %s,
 )
 load(r'%s')
-"""    
+"""
 
 
 # relpath.py
@@ -271,4 +260,3 @@ def relpath(target, base=os.curdir):
     rel_list = [os.pardir] * (len(base_list)-i) + target_list[i:]
     return os.path.join(*rel_list)
 
-    

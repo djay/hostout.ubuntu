@@ -18,15 +18,15 @@ from setuptools import setup, find_packages
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
 
-name = "collective.recipe.hostout"
+name = "collective.hostout"
 setup(
     name = name,
-    version = "0.1.1",
+    version = "0.1.2",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
-    description = "ZC Buildout recipe to create a tool uploading and deploying to a server",
+    description = "ZC Buildout recipe for deploying your buildout to a server",
     license = "GPL",
-    keywords = "buildout, deploy",
+    keywords = "buildout, deploy, deployment, server, plone, django",
     url='http://www.python.org/pypi/'+name,
     long_description=(
         read('README.txt')
@@ -37,23 +37,16 @@ setup(
         '**********************\n'
         + '\n' +
         read('collective', 'recipe', 'hostout', 'README.txt')
-        + '\n' +
-        'Download Cache\n'
-        '**************\n'
-        'The recipe supports use of a download cache in the same way\n'
-        'as zc.buildout. See downloadcache.txt for details\n'
-        + '\n' +
-        'Download\n'
-        '**********************\n'
+        + '\n'
         ),
 
     packages = find_packages(),
     include_package_data = True,
 #    data_files = [('.', ['*.txt'])],
-#   package_data = {'':('*.txt')},
+#    package_data = {'':('*.txt')},
     namespace_packages = ['collective', 'collective.recipe'],
-    install_requires = ['zc.buildout', 'setuptools', 'Fabric<0.1.0','collective.releaser','functools'],
+    install_requires = ['zc.buildout', 'setuptools', 'Fabric<0.1.0','functools'],
     entry_points = {'zc.buildout':
-                    ['default = %s:Recipe' % name]},
+                    ['default = collective.hostout:Recipe']},
     zip_safe = True,
     )
