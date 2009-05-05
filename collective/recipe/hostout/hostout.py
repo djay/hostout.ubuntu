@@ -256,9 +256,11 @@ class HostOut:
         tar.close()
         dir,package = os.path.split(package)
 
+        from pkg_resources import resource_string, resource_filename
+        fabfile = resource_filename(__name__, 'fabfile.py')
 
-        here = os.path.abspath(os.path.dirname(__file__))
-        fabfile = os.path.join(here,'fabfile.py')
+        #here = os.path.abspath(os.path.dirname(__file__))
+        #fabfile = os.path.join(here,'fabfile.py')
 
         try:
             try:

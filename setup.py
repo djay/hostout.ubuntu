@@ -21,7 +21,7 @@ def read(*rnames):
 name = "collective.hostout"
 setup(
     name = name,
-    version = "0.1.2",
+    version = "0.1.3",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = "ZC Buildout recipe for deploying your buildout to a server",
@@ -30,8 +30,8 @@ setup(
     url='http://www.python.org/pypi/'+name,
     long_description=(
         read('README.txt')
- #       + '\n' +
- #       read('CHANGES.txt')
+        + '\n' +
+        read('CHANGES.txt')
         + '\n' +
         'Detailed Documentation\n'
         '**********************\n'
