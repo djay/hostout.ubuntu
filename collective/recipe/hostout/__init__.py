@@ -33,7 +33,11 @@ class Recipe:
         directory = buildout['buildout']['directory']
         self.download_cache = buildout['buildout'].get('download-cache')
         self.install_from_cache = buildout['buildout'].get('install-from-cache')
+        self.versions_part = buildout['buildout'].get('versions_part','versions')
         self.buildout = buildout
+
+        #get all recipes here to make sure we're the last called
+        self.getAllRecipes()
 
         if self.download_cache:
             # cache keys are hashes of url, to ensure repeatability if the
@@ -154,15 +158,16 @@ class Recipe:
         hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
                                           eggdir=dist_dir,
                                           versions=versions,
-                                          buildout_cache=buildout_cache)
+                                          buildout_cache=buildout_cache,
+                                          versions_part = self.versions_part)
         path = os.path.join(base,'hostout.cfg')
         hostoutf = open(path,'w')
         hostoutf.write(hostout)
         hostoutf.close()
         return path
 
-    def getversions(self):
-        versions = {}
+    def getAllRecipes(self):
+        recipes = []
         for part in [p.strip() for p in self.buildout['buildout']['parts'].split()]:
             options = self.buildout.get(part)
             if not options.get('recipe'):
@@ -171,14 +176,28 @@ class Recipe:
                 recipe,subrecipe = options['recipe'].split(':')
             except:
                 recipe=options['recipe']
+            recipes.append((recipe,options))
+        return recipes
+
+    def getversions(self):
+        versions = {}
+        for recipe, options in self.getAllRecipes():
             egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
+            #TODO: need to put in recipe versions too
             requirements, ws = egg.working_set()
             for dist in ws.by_key.values():
                 project_name =  dist.project_name
                 version = dist.version
-                versions[project_name] =version
+                old_version,dep = versions.get(project_name,('',[]))
+                if recipe not in dep:
+                    dep.append(recipe)
+                versions[project_name] = (version,dep)
         spec = ""
-        for project_name,version in versions.items():
+        for project_name,info in versions.items():
+            version,deps = info
+            spec+='\n'
+            for dep in deps:
+                spec+='# Required by %s==%s\n' % (dep, 'Not Implemented') #versions[dep][0])
             if version != '0.0':
                 spec+='%s = %s' % (project_name,version)+'\n'
             else:
@@ -202,10 +221,10 @@ develop=
 eggs-directory = %(buildout_cache)s/eggs
 download-cache = %(buildout_cache)s/downloads
 
-versions=versions
+versions=%(versions_part)s
 #non-newest set because we know exact versions we want
 #newest=false
-[versions]
+[%(versions_part)s]
 %(versions)s
 """
 

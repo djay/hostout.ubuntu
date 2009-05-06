@@ -45,8 +45,12 @@ setup(
 #    data_files = [('.', ['*.txt'])],
 #    package_data = {'':('*.txt')},
     namespace_packages = ['collective', 'collective.recipe'],
-    install_requires = ['zc.buildout', 'setuptools', 'Fabric<0.1.0','functools'],
+    install_requires = ['zc.buildout',
+                        'setuptools',
+                        'Fabric<0.1.0', #in order to make it 2.4 compatible
+                        'functools' #needed for fabric to make it 2.4 compatible
+                        ],
     entry_points = {'zc.buildout':
                     ['default = collective.hostout:Recipe']},
-    zip_safe = True,
+    zip_safe = False,
     )
