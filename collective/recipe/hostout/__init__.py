@@ -70,7 +70,7 @@ class Recipe:
         self.remote_dir = self.options.get('remote_path','~%s/buildout'%self.user)
         self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
         self.start_cmd = self.start_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
-        self.extra_config = self.options.get('extra_config','')
+        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
 
 
     def install(self):
@@ -103,7 +103,7 @@ class Recipe:
         password=r"%s",\
         identityfile="%s",\
         config_file="%s",\
-        extra_config="%s",\
+        extra_config=%s,\
         start_cmd="%s",\
         stop_cmd="%s"'%\
                 (
@@ -117,7 +117,7 @@ class Recipe:
                  self.password,
                  self.identityfile,
                  hostout,
-                 self.extra_config,
+                 str(self.extra_config),
                  self.start_cmd,
                  self.stop_cmd
                  )

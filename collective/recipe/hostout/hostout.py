@@ -125,7 +125,7 @@ class HostOut:
             raise "Invalid config file"
 
         files = get_all_extends(config_file)
-        files += [f.strip() for f in self.extra_config.split('\n') if f.strip()]
+        files += self.extra_config
 
         tar,tarname = self.getDeployTar()
 
