@@ -6,15 +6,16 @@ systems is at your own risk**
 
 We have a buildout which we want to deploy to a brand new host
 
-We add collective.recipe.hostout to our development buildout
+We add collective.	hostout to our development buildout
 
     >>> write('buildout.cfg',
     ... """
     ... [buildout]
     ... parts = hostout
+    ... index = http://pypi.python.org/simple
     ... 
     ... [hostout]
-    ... recipe = collective.recipe.hostout
+    ... recipe = collective.hostout
     ... host = localhost
     ... """)
     

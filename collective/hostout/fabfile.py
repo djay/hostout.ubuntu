@@ -22,6 +22,10 @@ def createuser(buildout_user='buildout'):
     set(fab_key_filename=keyname)
 
 
+prepare_cmd = \
+"""((test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout)||(cd /tmp && wget $(unified_url) && tar -xvf /tmp/$(unified).tgz &&
+cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)))
+"""
 
 def preparebuildout():
     "install buildout and its dependencies"
@@ -29,9 +33,10 @@ def preparebuildout():
     #on suse sudo('/sbin/yast2 --install gcc')
     #eventually we want a more selfcontained solution. but for now this should work
     #run('export http_proxy=localhost:8123') # TODO get this from setting
-    run('cd /tmp && test -f $(unified).tgz || wget $(unified_url)')
-    run('test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
+    run('(test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout) || cd /tmp && test -f $(unified).tgz || wget $(unified_url)')
+    run('test -d $(buildout_dir) && test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
     sudo('test -d $(buildout_dir) || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)')
+#    sudo(prepare_cmd)
 
 #    try:
 #        run('ls $(buildout_dir)/bootstrap.py')
@@ -45,27 +50,27 @@ def preparebuildout():
 def installhostout():
     "deploy the package of changed cfg files"
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
-    
+
     local('test -f $(package_path)')
     put('$(package_path)', '/tmp/$(hostout_package)')
-    sudo('$(stop_cmd)||echo unable to stop application')
+    sudo('sh -c "$(stop_cmd)||echo unable to stop application"')
     #need a way to make sure ownership of files is ok
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
     sudo('sh -c "cd $(install_dir) && bin/buildout -c hostout.cfg"')
 #    run('cd $(install_dir) && $(reload_cmd)')
-    sudo('$(start_cmd)')
+    sudo('sh -c "$(start_cmd)"')
 
 
 def deploy(hostout, package):
-#           host,user='plone', 
-#           password=None, 
-#           identityfile=None, 
-#           buildout_user='plone', 
-#           remote_dir='buildout', 
-#           dist_dir='dist', 
+#           host,user='plone',
+#           password=None,
+#           identityfile=None,
+#           buildout_user='plone',
+#           remote_dir='buildout',
+#           dist_dir='dist',
 #           package='deploy_1',
 #           start_cmd='bin/supervisorctl reload && bin/supervisorctl start all',
-#           stop_cmd='bin/supervisorctl stop all' 
+#           stop_cmd='bin/supervisorctl stop all'
 #           ):
     "Prints hello."
     if hostout.password:
@@ -95,5 +100,5 @@ def deploy(hostout, package):
         start_cmd=hostout.start_cmd,
     )
     installhostout()
-    
+
 

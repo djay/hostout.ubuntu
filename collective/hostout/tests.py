@@ -39,7 +39,7 @@ def test_suite():
         #doctest.DocTestSuite(),
         doctest.DocFileSuite(
             'README.txt',
-             package='collective.recipe.hostout',
+             package='collective.hostout',
             setUp=setUp, tearDown=zc.buildout.testing.buildoutTearDown,
             optionflags = doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE |
                         doctest.NORMALIZE_WHITESPACE

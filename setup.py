@@ -36,7 +36,7 @@ setup(
         'Detailed Documentation\n'
         '**********************\n'
         + '\n' +
-        read('collective', 'recipe', 'hostout', 'README.txt')
+        read('collective', 'hostout', 'README.txt')
         + '\n'
         ),
 
@@ -44,7 +44,7 @@ setup(
     include_package_data = True,
 #    data_files = [('.', ['*.txt'])],
 #    package_data = {'':('*.txt')},
-    namespace_packages = ['collective', 'collective.recipe'],
+    namespace_packages = ['collective'],
     install_requires = ['zc.buildout',
                         'setuptools',
                         'Fabric<0.1.0', #in order to make it 2.4 compatible

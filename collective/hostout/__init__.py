@@ -124,7 +124,7 @@ class Recipe:
 
 
         zc.buildout.easy_install.scripts(
-                [(self.name, 'collective.recipe.hostout.hostout', 'main')],
+                [(self.name, 'collective.hostout.hostout', 'main')],
                 ws, options['executable'], options['bin-directory'],
                 arguments=args,
                 extra_paths=extra_paths
