@@ -125,7 +125,7 @@ class HostOut:
             raise "Invalid config file"
 
         files = get_all_extends(config_file)
-        files += [f.strip() for f in self.extra_config.split('\n') if f.strip()]
+        files += self.extra_config
 
         tar,tarname = self.getDeployTar()
 
@@ -256,9 +256,11 @@ class HostOut:
         tar.close()
         dir,package = os.path.split(package)
 
+        from pkg_resources import resource_string, resource_filename
+        fabfile = resource_filename(__name__, 'fabfile.py')
 
-        here = os.path.abspath(os.path.dirname(__file__))
-        fabfile = os.path.join(here,'fabfile.py')
+        #here = os.path.abspath(os.path.dirname(__file__))
+        #fabfile = os.path.join(here,'fabfile.py')
 
         try:
             try:

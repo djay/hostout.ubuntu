@@ -24,7 +24,7 @@ from zc.buildout.tests import normalize_bang
 
 def setUp(test):
     zc.buildout.testing.buildoutSetUp(test)
-    zc.buildout.testing.install_develop('zc.recipe.cmmi', test)
+    zc.buildout.testing.install_develop('collective.hostout', test)
 
 def add(tar, name, src, mode=None):
     info.size = len(src)
@@ -39,9 +39,14 @@ def test_suite():
         #doctest.DocTestSuite(),
         doctest.DocFileSuite(
             'README.txt',
+             package='collective.hostout',
             setUp=setUp, tearDown=zc.buildout.testing.buildoutTearDown,
-            optionflags = doctest.ELLIPSIS
+            optionflags = doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE |
+                        doctest.NORMALIZE_WHITESPACE
             ),
 
 
         ))
+
+if __name__ == '__main__':
+    unittest.main(defaultTest='test_suite')

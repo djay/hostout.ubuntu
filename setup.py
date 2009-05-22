@@ -21,7 +21,7 @@ def read(*rnames):
 name = "collective.hostout"
 setup(
     name = name,
-    version = "0.1.2",
+    version = "0.1.3",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = "ZC Buildout recipe for deploying your buildout to a server",
@@ -30,13 +30,13 @@ setup(
     url='http://www.python.org/pypi/'+name,
     long_description=(
         read('README.txt')
- #       + '\n' +
- #       read('CHANGES.txt')
+        + '\n' +
+        read('CHANGES.txt')
         + '\n' +
         'Detailed Documentation\n'
         '**********************\n'
         + '\n' +
-        read('collective', 'recipe', 'hostout', 'README.txt')
+        read('collective', 'hostout', 'README.txt')
         + '\n'
         ),
 
@@ -44,9 +44,13 @@ setup(
     include_package_data = True,
 #    data_files = [('.', ['*.txt'])],
 #    package_data = {'':('*.txt')},
-    namespace_packages = ['collective', 'collective.recipe'],
-    install_requires = ['zc.buildout', 'setuptools', 'Fabric<0.1.0','functools'],
+    namespace_packages = ['collective'],
+    install_requires = ['zc.buildout',
+                        'setuptools',
+                        'Fabric<0.1.0', #in order to make it 2.4 compatible
+                        'functools' #needed for fabric to make it 2.4 compatible
+                        ],
     entry_points = {'zc.buildout':
                     ['default = collective.hostout:Recipe']},
-    zip_safe = True,
+    zip_safe = False,
     )
