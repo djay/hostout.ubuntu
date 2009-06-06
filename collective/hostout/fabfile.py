@@ -56,23 +56,13 @@ def installhostout():
     sudo('sh -c "$(stop_cmd)||echo unable to stop application"')
     #need a way to make sure ownership of files is ok
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
-    sudo('sh -c "cd $(install_dir) && bin/buildout -c hostout.cfg"')
+    sudo('sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file)"')
 #    run('cd $(install_dir) && $(reload_cmd)')
     sudo('sh -c "$(start_cmd)"')
 
 
 def deploy(hostout, package):
-#           host,user='plone',
-#           password=None,
-#           identityfile=None,
-#           buildout_user='plone',
-#           remote_dir='buildout',
-#           dist_dir='dist',
-#           package='deploy_1',
-#           start_cmd='bin/supervisorctl reload && bin/supervisorctl start all',
-#           stop_cmd='bin/supervisorctl stop all'
-#           ):
-    "Prints hello."
+    ""
     if hostout.password:
         set(fab_password=hostout.password)
     if hostout.identityfile:
@@ -98,6 +88,7 @@ def deploy(hostout, package):
         package_path=os.path.abspath(os.path.join(hostout.dist_dir,package)),
         stop_cmd=hostout.stop_cmd,
         start_cmd=hostout.start_cmd,
+        hostout_file=hostout.config_file[len(hostout.buildout_location)+1:],
     )
     installhostout()
 

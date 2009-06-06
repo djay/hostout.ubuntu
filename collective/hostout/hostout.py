@@ -297,7 +297,7 @@ def main(
          user=None,
          password=None,
          identityfile=None,
-         config_file='hostout.cfg',
+         config_file=None,
          extra_config='',
          start_cmd='',
          stop_cmd=''):

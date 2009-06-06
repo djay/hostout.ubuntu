@@ -13,11 +13,16 @@ We add collective.	hostout to our development buildout
     ... [buildout]
     ... parts = hostout
     ... index = http://pypi.python.org/simple
+    ... develop = 
+    ...     %(recipe_location)s 
     ... 
     ... [hostout]
     ... recipe = collective.hostout
     ... host = localhost
-    ... """)
+    ... """ % globals())
+    >>> cat('buildout.cfg')
+    sdfdf
+    
     
  Now we run the buildout
 
