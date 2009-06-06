@@ -129,7 +129,6 @@ class Recipe:
                 arguments=args,
                 extra_paths=extra_paths
 #                initialization=address_info,
-#                arguments='host, port, socket_path', extra_paths=extra_paths
                 )
 
 
@@ -160,7 +159,7 @@ class Recipe:
                                           versions=versions,
                                           buildout_cache=buildout_cache,
                                           versions_part = self.versions_part)
-        path = os.path.join(base,'hostout.cfg')
+        path = os.path.join(base,'%s.cfg'%self.name)
         hostoutf = open(path,'w')
         hostoutf.write(hostout)
         hostoutf.close()

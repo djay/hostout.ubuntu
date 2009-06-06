@@ -21,10 +21,24 @@ import zope.testing
 from zope.testing import renormalizing
 from zc.buildout.tests import easy_install_SetUp
 from zc.buildout.tests import normalize_bang
+import os
+
+current_dir = os.path.abspath(os.path.dirname(__file__))
+recipe_location = current_dir
+
+for i in range(2):
+    recipe_location = os.path.split(recipe_location)[0]
+
 
 def setUp(test):
+    #zc.buildout.tests.easy_install_SetUp(test)
+    import pdb; pdb.set_trace()
     zc.buildout.testing.buildoutSetUp(test)
     zc.buildout.testing.install_develop('collective.hostout', test)
+    zc.buildout.testing.install('functools', test)
+    zc.buildout.testing.install('Fabric<0.1.0', test)
+
+
 
 def add(tar, name, src, mode=None):
     info.size = len(src)
@@ -35,6 +49,10 @@ def add(tar, name, src, mode=None):
 
 
 def test_suite():
+
+    globs = globals()
+
+
     return unittest.TestSuite((
         #doctest.DocTestSuite(),
         doctest.DocFileSuite(
@@ -42,7 +60,13 @@ def test_suite():
              package='collective.hostout',
             setUp=setUp, tearDown=zc.buildout.testing.buildoutTearDown,
             optionflags = doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE |
-                        doctest.NORMALIZE_WHITESPACE
+                        doctest.NORMALIZE_WHITESPACE,
+                        globs=globs,
+            checker=renormalizing.RENormalizing([
+               zc.buildout.testing.normalize_path,
+               zc.buildout.testing.normalize_script,
+               zc.buildout.testing.normalize_egg_py,
+               zc.buildout.tests.normalize_bang,]),
             ),
 
 
