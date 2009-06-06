@@ -1,3 +1,10 @@
 *.pyc
 *.egg-info
 .svn
+build
+dist
+bin
+.installed.cfg
+develop-eggs
+setup.cfg
+
