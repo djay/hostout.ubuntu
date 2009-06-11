@@ -32,11 +32,13 @@ for i in range(2):
 
 def setUp(test):
     #zc.buildout.tests.easy_install_SetUp(test)
-    import pdb; pdb.set_trace()
     zc.buildout.testing.buildoutSetUp(test)
     zc.buildout.testing.install_develop('collective.hostout', test)
     zc.buildout.testing.install('functools', test)
     zc.buildout.testing.install('Fabric<0.1.0', test)
+    zc.buildout.testing.install('paramiko==1.7.4', test)
+    zc.buildout.testing.install('pycrypto==2.0.1', test)
+    zc.buildout.testing.install('zc.recipe.egg', test)
 
 
 
@@ -64,9 +66,10 @@ def test_suite():
                         globs=globs,
             checker=renormalizing.RENormalizing([
                zc.buildout.testing.normalize_path,
-               zc.buildout.testing.normalize_script,
-               zc.buildout.testing.normalize_egg_py,
-               zc.buildout.tests.normalize_bang,]),
+               #zc.buildout.testing.normalize_script,
+               #zc.buildout.testing.normalize_egg_py,
+               #zc.buildout.tests.normalize_bang,
+               ]),
             ),
 
 

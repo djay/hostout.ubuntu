@@ -12,27 +12,18 @@ We add collective.	hostout to our development buildout
     ... """
     ... [buildout]
     ... parts = hostout
-    ... index = http://pypi.python.org/simple
-    ... develop = 
-    ...     %(recipe_location)s 
     ... 
     ... [hostout]
     ... recipe = collective.hostout
     ... host = localhost
     ... """ % globals())
-    >>> cat('buildout.cfg')
-    sdfdf
     
     
  Now we run the buildout
 
-    >>> print system('bin/buildout'),
-    ...
+    >>> print system('bin/buildout -o')
     Installing hostout.
-    hostout: Creating deployment script bin/hostout
-    hostout: Creating hostout.cfg with pinned buildout versions
-    ...
-
+    Generated script '/sample-buildout/bin/hostout'.
 
 We can run the hostout script the first time. It will
 

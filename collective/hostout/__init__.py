@@ -18,6 +18,7 @@ import datetime
 import sha
 import shutil
 import zc.buildout
+import zc.recipe.egg
 from os.path import join
 import os
 
@@ -86,7 +87,7 @@ class Recipe:
         #fname = join(location,'fabfile.py')
         #open(fname, 'w+').write(fabfile)
         extra_paths=[]
-        self.develop = [p.strip() for p in self.buildout.get('buildout').get('develop').split()]
+        self.develop = [p.strip() for p in self.buildout.get('buildout').get('develop','').split()]
         packages = self.develop + self.options.get('packages','').split()
         config_file = self.buildout_cfg
 
@@ -210,8 +211,7 @@ HOSTOUT_TEMPLATE = """
 extends = %(buildoutfile)s
 
 #Our own packaged eggs
-find-links +=
-    %(eggdir)s
+find-links += %(eggdir)s
 
 #prevent us looking for them as developer eggs
 develop=

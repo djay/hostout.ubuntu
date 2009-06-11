@@ -46,6 +46,7 @@ setup(
 #    package_data = {'':('*.txt')},
     namespace_packages = ['collective'],
     install_requires = ['zc.buildout',
+                        'zc.recipe.egg',
                         'setuptools',
                         'Fabric<0.1.0', #in order to make it 2.4 compatible
                         'functools' #needed for fabric to make it 2.4 compatible
