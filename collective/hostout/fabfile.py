@@ -58,6 +58,10 @@ def installhostout():
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
     sudo('sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file)"')
 #    run('cd $(install_dir) && $(reload_cmd)')
+#    sudo('chmod 600 .installed.cfg')
+    sudo('find $(install_dir)  -type d -name var -exec chown -R $(effectiveuser) \{\} \;')
+    sudo('find $(install_dir)  -type d -name LC_MESSAGES -exec chown -R $(effectiveuser) \{\} \;')
+    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
     sudo('sh -c "$(start_cmd)"')
 
 

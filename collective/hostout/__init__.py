@@ -61,7 +61,7 @@ class Recipe:
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.buildout_cfg = options['buildout'] = options.get('buildout','buildout.cfg')
         self.user = self.options.get('user','')
-        self.identityfile = self.options.get('identityfile','')
+        self.identityfile = self.options.get('identity_file','')
         self.effectiveuser = self.options.get('effective-user','plone')
         self.host = self.options['host']
         self.password = options.get('password','')
@@ -170,7 +170,7 @@ class Recipe:
         recipes = []
         for part in [p.strip() for p in self.buildout['buildout']['parts'].split()]:
             options = self.buildout.get(part)
-            if not options.get('recipe'):
+            if options is None or not options.get('recipe'):
                 continue
             try:
                 recipe,subrecipe = options['recipe'].split(':')
@@ -217,8 +217,8 @@ find-links += %(eggdir)s
 develop=
 
 #Match to unifiedinstaller
-eggs-directory = %(buildout_cache)s/eggs
-download-cache = %(buildout_cache)s/downloads
+#eggs-directory = %(buildout_cache)s/eggs
+#download-cache = %(buildout_cache)s/downloads
 
 versions=%(versions_part)s
 #non-newest set because we know exact versions we want

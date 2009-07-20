@@ -24,9 +24,9 @@ setup(
     version = "0.1.4",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
-    description = "ZC Buildout recipe for deploying your buildout to a server",
+    description = "one click deployment for buildout based applications",
     license = "GPL",
-    keywords = "buildout, deploy, deployment, server, plone, django",
+    keywords = "buildout, deploy, deployment, server, plone, django, host, hosting",
     url='http://www.python.org/pypi/'+name,
     long_description=(
         read('README.txt')
