@@ -21,150 +21,127 @@ import zc.buildout
 import zc.recipe.egg
 from os.path import join
 import os
+from os.path import dirname, abspath
+import ConfigParser
+
 
 def system(c):
     if os.system(c):
         raise SystemError("Failed", c)
 
+
+
 class Recipe:
 
     def __init__(self, buildout, name, options):
         self.egg = zc.recipe.egg.Egg(buildout, options['recipe'], options)
-        self.name, self.options = name, options
-        directory = buildout['buildout']['directory']
-        self.download_cache = buildout['buildout'].get('download-cache')
-        self.install_from_cache = buildout['buildout'].get('install-from-cache')
-        self.versions_part = buildout['buildout'].get('versions_part','versions')
-        self.buildout = buildout
+        self.name, self.options, self.buildout = name, options, buildout
 
         #get all recipes here to make sure we're the last called
-        self.getAllRecipes()
+        main = None
+        for part, recipe, options in self.getAllRecipes():
+            if recipe == self.options['recipe']:
+                main = options
+                if options.get('mainhostout'):
+                    break
+        options['mainhostout'] = 'true'
 
-        if self.download_cache:
-            # cache keys are hashes of url, to ensure repeatability if the
-            # downloads do not have a version number in the filename
-            # cache key is a directory which contains the downloaded file
-            # download details stored with each key as cache.ini
-            self.download_cache = os.path.join(
-                directory, self.download_cache, 'cmmi')
-
-        # we assume that install_from_cache and download_cache values
-        # are correctly set, and that the download_cache directory has
-        # been created: this is done by the main zc.buildout anyway
-
-        options['location'] = os.path.join(
-            buildout['buildout']['parts-directory'],
-            self.name,
-            )
-        options['bin-directory'] = buildout['buildout']['bin-directory']
-        self.dist_dir = options['dist_dir'] = dist_dir = self.options.get('dist_dir','dist')
         self.buildout_dir = self.buildout.get('buildout').get('directory')
-        self.buildout_cfg = options['buildout'] = options.get('buildout','buildout.cfg')
-        self.user = self.options.get('user','')
-        self.identityfile = self.options.get('identity_file','')
-        self.effectiveuser = self.options.get('effective-user','plone')
-        self.host = self.options['host']
-        self.password = options.get('password','')
-        self.start_cmd = options.get('start_cmd','')
-        self.stop_cmd = options.get('stop_cmd', '')
-        #replace any references to the localbuildout dir with the remote buildout dir
-        self.remote_dir = self.options.get('remote_path','~%s/buildout'%self.user)
-        self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
-        self.start_cmd = self.start_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
-        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
+        self.download_cache = self.buildout['buildout'].get('download-cache')
+        self.install_from_cache = self.buildout['buildout'].get('install-from-cache')
+        self.options['versions'] = self.buildout['buildout'].get('versions','versions')
 
+        self.options['dist_dir'] = self.options.get('dist_dir','dist')
+        self.options.setdefault('buildout','buildout.cfg')
+        self.options.setdefault('user','')
+        self.options.setdefault('identity_file','')
+        self.options.setdefault('effective-user','plone')
+        self.host = self.options['host']
+        self.options.setdefault('password','')
+        self.options.setdefault('start_cmd','')
+        self.options.setdefault('stop_cmd', '')
+        self.options.setdefault('extra_config','')
+        #self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
+        #self.start_cmd = self.start_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
+        #replace any references to the localbuildout dir with the remote buildout dir
+        self.options.setdefault('remote_path','~%s/buildout'%self.options['user'])
+#        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
+        self.options.setdefault('buildout_location',self.buildout_dir)
+
+        self.options['location'] = os.path.join(
+            self.buildout['buildout']['parts-directory'],
+            'hostout',
+            )
+        self.optionsfile = join(self.options['location'],'hostout.cfg')
 
     def install(self):
         logger = logging.getLogger(self.name)
 
-        requirements, ws = self.egg.working_set()
-        options = self.options
-        location = options['location']
-        from os.path import dirname, abspath
+        location = self.options['location']
+
         if not os.path.exists(location):
             os.mkdir(location)
-        #fabfile = template % (self.name, [host], base)
-        #fname = join(location,'fabfile.py')
-        #open(fname, 'w+').write(fabfile)
-        extra_paths=[]
-        self.develop = [p.strip() for p in self.buildout.get('buildout').get('develop','').split()]
-        packages = self.develop + self.options.get('packages','').split()
-        config_file = self.buildout_cfg
 
 
-        hostout = self.genhostout()
-
-        args = 'effectiveuser="%s",\
-        remote_dir=r"%s",\
-        dist_dir=r"%s",\
-        packages=%s,\
-        buildout_location="%s",\
-        host="%s",\
-        user=r"%s",\
-        password=r"%s",\
-        identityfile="%s",\
-        config_file="%s",\
-        extra_config=%s,\
-        start_cmd="%s",\
-        stop_cmd="%s"'%\
-                (
-                 self.effectiveuser,
-                 self.remote_dir,
-                 self.dist_dir,
-                 str(packages),
-                 self.buildout_dir,
-                 self.host,
-                 self.user,
-                 self.password,
-                 self.identityfile,
-                 hostout,
-                 str(self.extra_config),
-                 self.start_cmd,
-                 self.stop_cmd
-                 )
-
-
-        zc.buildout.easy_install.scripts(
-                [(self.name, 'collective.hostout.hostout', 'main')],
-                ws, options['executable'], options['bin-directory'],
-                arguments=args,
+        if self.options.has_key('mainhostout'):
+            requirements, ws = self.egg.working_set()
+            bin = self.buildout['buildout']['bin-directory']
+            extra_paths=[]
+            zc.buildout.easy_install.scripts(
+                [('hostout', 'collective.hostout.hostout', 'main')],
+                ws, self.options['executable'], bin,
+                arguments="'%s',sys.argv[1:]"%self.optionsfile,
                 extra_paths=extra_paths
 #                initialization=address_info,
                 )
 
+        config = ConfigParser.ConfigParser()
+        config.read(self.optionsfile)
+        if not config.has_section(self.name):
+            config.add_section(self.name)
+        if not config.has_section('buildout'):
+            config.add_section('buildout')
+        for name,value in self.options.items():
+            config.set(self.name, name, value)
+        config.set('buildout','location',self.buildout_dir)
+        if self.options.has_key('mainhostout'):
+            if not config.has_section('versions'):
+                config.add_section('versions')
+                for pkg,info in self.getVersions().items():
+                    version,deps = info
+                    config.set('versions',pkg,version)
+            config.set('buildout', 'bin-directory', self.buildout.get('buildout').get('directory'))
+            if self.options['dist_dir']:
+                config.set('buildout','dist_dir', self.options['dist_dir'])
 
+        fp = open(self.optionsfile, 'w+')
+        config.write(fp)
+        fp.close()
+        self.update()
 
         return location
 
     def update(self):
-        return self.install()
+        if not self.options.has_key('mainhostout'):
+            return
+        config = ConfigParser.ConfigParser()
+        config.read(self.optionsfile)
+        if not config.has_section('versions'):
+            config.add_section('versions')
+        for pkg,info in self.getVersions().items():
+            version,deps = info
+            config.set('versions',pkg,version)
+
+        packages = [p.strip() for p in self.buildout.get('buildout').get('develop','').split()]
+        packages += [p.strip() for p in self.options.get('packages','').split()]
+        config.set('buildout', 'packages', '\n   '.join(packages))
+        #self.options.setdefault('develop','')
+
+        fp = open(self.optionsfile, 'w+')
+        config.write(fp)
+        fp.close()
 
 
-    def genhostout(self):
-        """ generate a new buildout file which pins versions and uses our deployment distributions"""
-
-
-        base = self.buildout_dir
-        dist_dir = os.path.abspath(os.path.join(self.buildout_dir,self.dist_dir))
-        if not os.path.exists(dist_dir):
-            os.makedirs(dist_dir)
-
-        buildoutfile = relpath(self.buildout_cfg, base)
-        dist_dir = relpath(self.dist_dir, base)
-        versions = self.getversions()
-        #versions = ""
-        install_base = os.path.dirname(self.remote_dir)
-        buildout_cache = os.path.join(install_base,'buildout-cache')
-        hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
-                                          eggdir=dist_dir,
-                                          versions=versions,
-                                          buildout_cache=buildout_cache,
-                                          versions_part = self.versions_part)
-        path = os.path.join(base,'%s.cfg'%self.name)
-        hostoutf = open(path,'w')
-        hostoutf.write(hostout)
-        hostoutf.close()
-        return path
 
     def getAllRecipes(self):
         recipes = []
@@ -176,12 +153,12 @@ class Recipe:
                 recipe,subrecipe = options['recipe'].split(':')
             except:
                 recipe=options['recipe']
-            recipes.append((recipe,options))
+            recipes.append((part,recipe,options))
         return recipes
 
-    def getversions(self):
+    def getVersions(self):
         versions = {}
-        for recipe, options in self.getAllRecipes():
+        for part, recipe, options in self.getAllRecipes():
             egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
             #TODO: need to put in recipe versions too
             requirements, ws = egg.working_set()
@@ -191,41 +168,20 @@ class Recipe:
                 old_version,dep = versions.get(project_name,('',[]))
                 if recipe not in dep:
                     dep.append(recipe)
-                versions[project_name] = (version,dep)
+                if version != '0.0':
+                    versions[project_name] = (version,dep)
         spec = ""
+        return versions
         for project_name,info in versions.items():
             version,deps = info
             spec+='\n'
-            for dep in deps:
-                spec+='# Required by %s==%s\n' % (dep, 'Not Implemented') #versions[dep][0])
+#            for dep in deps:
+#                spec+='# Required by %s==%s\n' % (dep, 'Not Implemented') #versions[dep][0])
             if version != '0.0':
                 spec+='%s = %s' % (project_name,version)+'\n'
-            else:
-                spec+='#%s = %s' % (project_name,version)+'\n'
+#            else:
+#                spec+='#%s = %s' % (project_name,version)+'\n'
         return spec
-
-
-
-HOSTOUT_TEMPLATE = """
-[buildout]
-extends = %(buildoutfile)s
-
-#Our own packaged eggs
-find-links += %(eggdir)s
-
-#prevent us looking for them as developer eggs
-develop=
-
-#Match to unifiedinstaller
-#eggs-directory = %(buildout_cache)s/eggs
-#download-cache = %(buildout_cache)s/downloads
-
-versions=%(versions_part)s
-#non-newest set because we know exact versions we want
-#newest=false
-[%(versions_part)s]
-%(versions)s
-"""
 
 
 
