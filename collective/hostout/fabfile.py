@@ -1,4 +1,5 @@
 import os
+from os.path import join, basename, dirname
 
 def createuser(buildout_user='buildout'):
     "Creates a user account to run the buildout in"
@@ -27,15 +28,19 @@ prepare_cmd = \
 cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)))
 """
 
-def preparebuildout():
+def preparebuildout(hostout):
     "install buildout and its dependencies"
     #first need to ensure gcc installed
     #on suse sudo('/sbin/yast2 --install gcc')
     #eventually we want a more selfcontained solution. but for now this should work
     #run('export http_proxy=localhost:8123') # TODO get this from setting
-    run('(test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout) || cd /tmp && test -f $(unified).tgz || wget $(unified_url)')
+    run('(test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout) ||  cd /tmp && test -f $(unified).tgz || wget  --no-clobber --continue $(unified_url)')
     run('test -d $(buildout_dir) && test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
-    sudo('test -d $(buildout_dir) || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)')
+    sudo('test -d $(buildout_dir) || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo mkdir -p  $(install_dir) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)')
+    sudo('chown -R $(effectiveuser) $(install_dir)')
+    sudo('mkdir -p %(dc)s/dist && chown -R $(effectiveuser) %(dc)s'% dict(dc=hostout.getDownloadCache()))
+    sudo('mkdir -p %(dc)s && chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
+   # sudo('find $(install_dir) -exec chown $(effectiveuser) \{\} \;')
 #    sudo(prepare_cmd)
 
 #    try:
@@ -47,25 +52,40 @@ def preparebuildout():
 #    except:
 #        run('cd $(buildout_dir); python bootstrap.py')
 
-def installhostout():
+def installhostout(hostout):
     "deploy the package of changed cfg files"
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
+    for pkg in hostout.localEggs():
+        tmp = join('/tmp', basename(pkg))
+        tgt = join(hostout.getDownloadCache(), 'dist', basename(pkg))
+        try:
+            sudo('test -f %s'%tgt)
+        except:
+            put(pkg, tmp)
+            sudo("mv %s %s"%(tmp,tgt))
+            sudo('chown $(effectiveuser) %s' % tgt)
 
-    local('test -f $(package_path)')
-    put('$(package_path)', '/tmp/$(hostout_package)')
-    sudo('sh -c "$(stop_cmd)||echo unable to stop application"')
+    try:
+        sudo('test -f $(package_path)')
+    except:
+        put('$(hostout_package)', '$(package_path)')
+        sudo('chown $(effectiveuser) $(package_path)')
     #need a way to make sure ownership of files is ok
-    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
-    sudo('sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file)"')
+    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf $(package_path) --directory=$(install_dir)')
+#    if hostout.getParts():
+#        parts = ' '.join(hostout.getParts())
+ #       sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file) install %s"' % parts)
+  #  else:
+    sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file)"')
+
 #    run('cd $(install_dir) && $(reload_cmd)')
 #    sudo('chmod 600 .installed.cfg')
-    sudo('find $(install_dir)  -type d -name var -exec chown -R $(effectiveuser) \{\} \;')
-    sudo('find $(install_dir)  -type d -name LC_MESSAGES -exec chown -R $(effectiveuser) \{\} \;')
-    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
-    sudo('sh -c "$(start_cmd)"')
+#    sudo('find $(install_dir)  -type d -name var -exec chown -R $(effectiveuser) \{\} \;')
+#    sudo('find $(install_dir)  -type d -name LC_MESSAGES -exec chown -R $(effectiveuser) \{\} \;')
+#    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
 
 
-def deploy(hostout, package):
+def deploy(hostout):
     ""
     if hostout.password:
         set(fab_password=hostout.password)
@@ -80,20 +100,26 @@ def deploy(hostout, package):
         unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
         install_dir=os.path.split(hostout.remote_dir)[0],
         instance=os.path.split(hostout.remote_dir)[1],
+        download_cache=hostout.getDownloadCache()
     )
-    preparebuildout()
+    for cmd in hostout.getPreCommands():
+        sudo('sh -c "%s"'%cmd)
+
+    preparebuildout(hostout)
     set(
         buildout_user=hostout.effective_user,
         fab_user=hostout.user,
         #fab_key_filename="buildout_dsa",
         dist_dir=hostout.dist_dir,
         install_dir=hostout.remote_dir,
-        hostout_package=package,
-        package_path=os.path.abspath(os.path.join(hostout.dist_dir,package)),
+        hostout_package=hostout.getHostoutPackage(),
+        package_path=os.path.abspath(os.path.join(hostout.getDownloadCache(), os.path.basename(hostout.getHostoutPackage()))),
         stop_cmd=hostout.stop_cmd,
         start_cmd=hostout.start_cmd,
-        hostout_file=hostout.config_file[len(hostout.buildout_location)+1:],
+        hostout_file=hostout.getHostoutFile(),
     )
-    installhostout()
+    installhostout(hostout)
+    for cmd in hostout.getPostCommands():
+        sudo('sh -c "%s"'%cmd)
 
 

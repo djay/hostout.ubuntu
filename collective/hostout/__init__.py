@@ -61,6 +61,7 @@ class Recipe:
         self.options.setdefault('start_cmd','')
         self.options.setdefault('stop_cmd', '')
         self.options.setdefault('extra_config','')
+        self.options.setdefault('parts','')
         #self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
         #self.start_cmd = self.start_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
         #replace any references to the localbuildout dir with the remote buildout dir
@@ -182,19 +183,6 @@ class Recipe:
 #            else:
 #                spec+='#%s = %s' % (project_name,version)+'\n'
         return spec
-
-
-
-
-
-
-template = """
-set(
-        project = '%s',
-        fab_hosts = %s,
-)
-load(r'%s')
-"""
 
 
 # relpath.py

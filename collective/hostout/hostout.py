@@ -21,6 +21,8 @@ import fabric
 import tarfile
 import ConfigParser
 import sys
+import md5
+import os
 from zc.buildout import buildout
 from os.path import join, exists
 from itertools import chain
@@ -31,7 +33,7 @@ from paramiko import SSHConfig
 
 import time, random, md5
 from collective.hostout import relpath
-
+import pkg_resources
 
 
 """
@@ -90,7 +92,12 @@ class HostOut:
         self.stop_cmd = opt['stop_cmd']
         self.extra_config = opt['extra_config']
         self.buildout_cfg = opt['buildout']
-        self.versions_section = opt['versions']
+        self.versions_part = opt.get('versions','versions')
+        self.parts = [p.strip() for p in opt['parts'].split() if p.strip()]
+        self.buildout_cache = opt.get('buildout-cache','')
+        if not self.buildout_cache:
+            install_base = os.path.dirname(self.getRemoteBuildoutPath())
+            self.buildout_cache = os.path.join(install_base,'buildout-cache')
 
         #self.packages = opt['packages']
         #dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
@@ -98,6 +105,33 @@ class HostOut:
         #    os.makedirs(dist_dir)
         #self.tar = None
 
+    def getHostoutFile(self):
+        return self.config_file[len(self.packages.buildout_location)+1:]
+    def getPreCommands(self):
+        return self._subRemote(clean(self.stop_cmd))
+    def getPostCommands(self):
+        return self._subRemote(clean(self.start_cmd))
+    def getBuildoutDependencies(self):
+        abs = lambda p: os.path.abspath(os.path.join(self.getLocalBuildoutPath(),p))
+        return [abs(p) for p in clean(self.extra_config)]
+    def getLocalBuildoutPath(self):
+        return os.path.abspath(self.packages.buildout_location)
+    def getRemoteBuildoutPath(self):
+        return self.remote_dir
+    def localEggs(self):
+        return self.packages.local_eggs
+
+    def getParts(self):
+        return self.parts
+
+    def getDownloadCache(self):
+        return "%s/%s" % (self.buildout_cache, 'downloads')
+    def getEggCache(self):
+        return "%s/%s" % (self.buildout_cache, 'eggs')
+
+    def _subRemote(self, cmds):
+        "replace abs localpaths to the buildout with absluote remate buildout paths"
+        return [c.replace(self.getLocalBuildoutPath(), self.getRemoteBuildoutPath()) for c in cmds]
 
     def getDeployTar(self):
         return self.packages.getDeployTar()
@@ -108,29 +142,37 @@ class HostOut:
         folder = self.dist_dir
 
         dist_dir = self.packages.dist_dir
-        #config_file = os.path.abspath(os.path.join(self.buildout_location,self.config_file))
-        config_file = self.genhostout()
+        self.config_file = self.genhostout()
+        config_file = os.path.abspath(os.path.join(self.packages.buildout_location,self.config_file))
         base = os.path.dirname(config_file)
         if not os.path.exists(config_file):
             raise "Invalid config file"
 
         files = get_all_extends(config_file)
-        files += self.extra_config
+        files += self.getBuildoutDependencies()
 
-        tar,tarname = self.packages.release_eggs()
+        self.packages.release_eggs()
 
-        self.packages.writeVersions(config_file)
+        self.packages.writeVersions(config_file, self.versions_part)
 
+        dist_dir = self.dist_dir
+        self.releaseid = '%s_%s'%(time.time(),uuid())
+        self.releaseid = _dir_hash(files)
+
+        name = '%s/%s_%s.tgz'%(dist_dir,'deploy', self.releaseid)
+        self.hostout_package = name
+        if os.path.exists(name):
+            return name
+        else:
+            self.tar = tarfile.open(name,"w:gz")
 
         for file in files:
             relative = file[len(self.buildout_dir)+1:] #TODO
-            tar.add(file,arcname=relative)
+            self.tar.add(file,arcname=relative)
+        self.tar.close()
 
-
-    def pin_versions(self,fname):
-        "create a .hostoutVersions.cfg which contains the pinned versions"
-
-
+    def getHostoutPackage(self):
+        return self.hostout_package
 
     def getDSAKey(self):
         keyfile = os.path.abspath(os.path.join(self.buildout_location,'hostout_dsa'))
@@ -164,7 +206,7 @@ class HostOut:
             host = "%s:%s" % (host,port)
         self.host=host
         if not self.identityfile:
-            self.identityfile = opt.get('identityfile',None)
+            self.identityfile = opt.get('identityfile', None)
             if self.identityfile:
                 self.identityfile = os.path.expanduser(self.identityfile).strip()
         if not self.user:
@@ -178,9 +220,6 @@ class HostOut:
 
  #       args = (self.user,self.password,self.identityfile,self.remote_dir,self.dist_dir,self.packages)
  #       args = ['deploy:user=%s,password=%s,identityfile=%s,remote_dir=%s,dist_dir=%s,package=%s'%args]
-        tar,package = self.getDeployTar()
-        tar.close()
-        dir,package = os.path.split(package)
 
         from pkg_resources import resource_string, resource_filename
         fabfile = resource_filename(__name__, 'fabfile.py')
@@ -194,7 +233,7 @@ class HostOut:
                 fabric._load_default_settings()
                 fabric.load(fabfile, fail='warn')
                 cmd = fabric.COMMANDS['deploy']
-                cmd(self, package)
+                cmd(self)
             finally:
                 fabric._disconnect()
             print("Done.")
@@ -218,20 +257,36 @@ class HostOut:
 
         buildoutfile = relpath(self.buildout_cfg, base)
         dist_dir = relpath(self.dist_dir, base)
-        versions = self.packages.versions
         #versions = ""
-        install_base = os.path.dirname(self.remote_dir)
-        buildout_cache = os.path.join(install_base,'buildout-cache')
         hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
                                           eggdir=dist_dir,
-                                          versions=versions,
-                                          buildout_cache=buildout_cache,
-                                          versions_part = self.versions_section)
+                                          download_cache=self.getDownloadCache(),
+                                          egg_cache=self.getEggCache(),
+                                          )
         path = os.path.join(base,'%s.cfg'%self.name)
         hostoutf = open(path,'w')
         hostoutf.write(hostout)
         hostoutf.close()
         return path
+
+    def genhostout(self):
+        base = self.buildout_dir
+        path = os.path.join(base,'%s.cfg'%self.name)
+        config = ConfigParser.ConfigParser()
+        config.read([path])
+        config.set('buildout', 'extends', relpath(self.buildout_cfg, base))
+        config.set('buildout','develop', '')
+#        config.set('buildout', 'eggs-directory '= %(egg_cache)s
+        config.set('buildout', 'download-cache', self.getDownloadCache())
+        config.set('buildout', 'newest', 'true')
+        if self.getParts():
+            config.set('buildout', 'parts', ' '.join(self.getParts()))
+
+        fp = open(path,'w')
+        config.write(fp)
+        fp.close()
+        return path
+
 
 
 HOSTOUT_TEMPLATE = """
@@ -244,15 +299,14 @@ find-links += %(eggdir)s
 #prevent us looking for them as developer eggs
 develop=
 
-#Match to unifiedinstaller
-#eggs-directory = %(buildout_cache)s/eggs
-#download-cache = %(buildout_cache)s/downloads
+#install-from-cache = true
 
-versions=%(versions_part)s
+#Match to unifiedinstaller
+eggs-directory = %(egg_cache)s
+download-cache = %(download_cache)s
+
 #non-newest set because we know exact versions we want
-#newest=false
-[%(versions_part)s]
-%(versions)s
+newest=true
 """
 
 
@@ -276,16 +330,6 @@ class Packages:
             os.makedirs(dist_dir)
         self.dist_dir = dist_dir
 
-    def getDeployTar(self):
-        dist_dir = self.dist_dir
-        name = '%s/%s_%s.tgz'%(dist_dir,'deploy', self.releaseid)
-        if self.tar is None:
-            if os.path.exists(name):
-                os.remove(name)
-            self.tar = tarfile.open(name,"w:gz")
-        return self.tar,name #TODO: need to give it a version
-
-
 
     def release_eggs(self):
         "developer eggs->if changed, increment versions, build and get ready to upload"
@@ -296,64 +340,68 @@ class Packages:
             return self.getDeployTar()
 
         #python setup.py sdist bdist_egg
-        tmpdir = tempfile.mkdtemp()
+ #       tmpdir = tempfile.mkdtemp()
         localdist_dir = self.dist_dir
 
-        self.releaseid = '%s_%s'%(time.time(),uuid())
-
         donepackages = []
+        ids = {}
+        self.develop_versions = {}
+        self.local_eggs = []
         for path in self.packages:
 
             # use buildout to run setup for us
+            hash = _dir_hash([path])
+            ids[hash]=path
+            dist = [d for d in pkg_resources.find_distributions(path, only=True)]
+            dist = dist[0]
+
+            if hash in dist.version:
+                self.develop_versions[dist.project_name] = dist.version
+                continue
+
             if os.path.isdir(path):
                 res = self.setup(args=[path,
                                      'clean',
                                      'egg_info',
-                                     '--tag-svn-revision',
-                                     '--tag-build','dev_'+self.releaseid,
+                                     '--tag-build','dev_'+hash,
                                      #'sdist',
                                      #'--formats=zip', #fix bizzare gztar truncation on windows
                                       'bdist_egg',
                                      '--dist-dir',
-                                     '%s'%tmpdir,
+                                     '%s'%localdist_dir,
                                       ])
             else:
-                shutil.copy(path,tmpdir)
+                shutil.copy(path,localdist_dir)
             donepackages.append(path)
-            assert len(donepackages) == len(os.listdir(tmpdir)), "Egg wasn't generated. See errors above"
-        tar,tarname = self.getDeployTar()
+            #assert len(donepackages) == len(os.listdir(tmpdir)), "Egg wasn't generated. See errors above"
 
-        specs = []
-        for dist in os.listdir(tmpdir):
-            #work out version from name
-            name,tail = dist.split('-', 1)
-            #HACK: must be a better way to get full version spec
-            version = tail[:tail.find(self.releaseid)+len(self.releaseid)]
-            for end in ['.tar.gz','.zip','.egg','.tar','.tgz']:
-                if version != tail:
-                    specs.append((name,version))
-                    break
-                else:
-                    version = tail[:tail.find(end)]
 
-            src = os.path.join(tmpdir,dist)
-            tar.add(src, arcname=os.path.join(self.dist_dir,dist))
-            tgt = os.path.join(localdist_dir,dist)
-            if os.path.exists(tgt):
-                os.remove(tgt)
-            shutil.move(src, tgt)
-        os.removedirs(tmpdir)
+        for dist in pkg_resources.find_distributions(localdist_dir):
+            if dist.project_name in self.develop_versions and \
+               self.develop_versions[dist.project_name] == dist.version:
+                    self.local_eggs.append(dist.location)
+        return self.local_eggs
 
-        self.develop_versions = specs
-        return self.getDeployTar()
+    def getVersion(self, path):
+        "Test to see if we already have a release of this developer egg"
+        dist = [d for d in pkg_resources.find_distributions(path, only=True)]
+        dist = dist[0]
 
-    def writeVersions(self, versions_file):
+        return dist.version
+
+    def writeVersions(self, versions_file, part):
 
 #        assert len(specs) == len(self.packages)
         config = ConfigParser.ConfigParser()
         config.read([versions_file])
-        for name,version in self.develop_versions + self.versions.items():
-            config.set('versions',name,version)
+        specs = {}
+        specs.update(self.versions)
+        specs.update(self.develop_versions)
+        config.set('buildout', 'versions', part)
+        if part not in config.sections():
+            config.add_section(part)
+        for name, version in specs.items():
+            config.set(part,name,version)
         fp = open(versions_file,'w')
         config.write(fp)
         fp.close()
@@ -386,13 +434,10 @@ class Packages:
 def main(cfgfile, args):
     "execute the fabfile we generated"
 
-#    from os.path import dirname, abspath
-#    here = abspath(dirname(__file__))
-
     config = ConfigParser.ConfigParser()
     config.read([cfgfile])
     files = [cfgfile]
-    hosts = {}
+    allhosts = {}
 #    buildout = Buildout(config.get('buildout','buildout'),[])
     packages = Packages(config)
     #eggs = packages.release_eggs()
@@ -400,13 +445,14 @@ def main(cfgfile, args):
         options = dict(config.items(section))
 
         hostout = HostOut(section, options, packages)
-        hosts[section] = hostout
+        allhosts[section] = hostout
     if args:
-        host,cmd = args[0],args[1]
-        if host == 'all':
-            torun = hosts.values()
+        cmd, hosts = args[0],args[1]
+        hosts = hosts.split()
+        if 'all' in hosts:
+            torun = allhosts.values()
         else:
-            torun = hosts.has_key(host) and [hosts[host]]
+            torun = [allhosts[host] for host in hosts if host in allhosts]
         if cmd == 'deploy' and torun:
             for hostout in torun:
                 hostout.readsshconfig()
@@ -429,4 +475,27 @@ def uuid( *args ):
   data = str(t)+' '+str(r)+' '+str(a)+' '+str(args)
   data = md5.md5(data).hexdigest()
   return data
+
+ignore_directories = '.svn', 'CVS', 'build', '.git'
+ignore_files = ['PKG-INFO']
+def _dir_hash(paths):
+    hash = md5.new()
+    for path in paths:
+        if os.path.isdir(path):
+            walked = os.walk(path)
+        else:
+            walked = [(os.path.dirname(path), [], [os.path.basename(path)])]
+        for (dirpath, dirnames, filenames) in walked:
+            dirnames[:] = [n for n in dirnames if not (n in ignore_directories or n.endswith('.egg-info'))]
+            filenames[:] = [f for f in filenames
+                        if not (f in ignore_files or f.endswith('pyc') or f.endswith('pyo'))]
+            hash.update(' '.join(dirnames))
+            hash.update(' '.join(filenames))
+            for name in filenames:
+                hash.update(open(os.path.join(dirpath, name)).read())
+    import base64
+    hash = base64.urlsafe_b64encode(hash.digest()).strip()
+    hash = hash.replace('_','-').replace('=','')
+    return hash
+
 
