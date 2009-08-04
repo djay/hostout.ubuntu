@@ -49,8 +49,10 @@ of all the eggs.
 """
 
 def clean(lines):
-        return [l.strip()
-                for l in lines.split('\n') if l.strip() != '']
+    if lines is None:
+        return []
+    return [l.strip() for l in lines.split('\n') if l.strip() != '']
+
 _isurl = re.compile('([a-zA-Z0-9+.-]+)://').match
 
 
@@ -88,8 +90,8 @@ class HostOut:
         self.password = opt['password']
         self.identityfile = opt['identity_file']
         #create new buildout so we can analyse the working set.
-        self.start_cmd = opt['start_cmd']
-        self.stop_cmd = opt['stop_cmd']
+        self.start_cmd = opt.get('post-commands')
+        self.stop_cmd = opt.get('pre-commands')
         self.extra_config = opt['extra_config']
         self.buildout_cfg = opt['buildout']
         self.versions_part = opt.get('versions','versions')
@@ -274,9 +276,11 @@ class HostOut:
         path = os.path.join(base,'%s.cfg'%self.name)
         config = ConfigParser.ConfigParser()
         config.read([path])
+        if 'buildout' not in config.sections():
+            config.add_section('buildout')
         config.set('buildout', 'extends', relpath(self.buildout_cfg, base))
         config.set('buildout','develop', '')
-#        config.set('buildout', 'eggs-directory '= %(egg_cache)s
+        config.set('buildout', 'eggs-directory', self.getEggCache())
         config.set('buildout', 'download-cache', self.getDownloadCache())
         config.set('buildout', 'newest', 'true')
         if self.getParts():
@@ -329,6 +333,15 @@ class Packages:
         if not os.path.exists(dist_dir):
             os.makedirs(dist_dir)
         self.dist_dir = dist_dir
+        self.local_eggs = []
+
+    def getDistEggs(self):
+
+        res = {}
+
+        localdist_dir = self.dist_dir
+        eggs = pkg_resources.find_distributions(localdist_dir)
+        return dict([(( egg.project_name,egg.version),egg) for egg in eggs])
 
 
     def release_eggs(self):
@@ -336,30 +349,33 @@ class Packages:
         # first get list of deveelop packages we got from recipe
         # for each package
         #
-        if self.tar is not None:
-            return self.getDeployTar()
+        if self.local_eggs:
+            return self.local_eggs
 
         #python setup.py sdist bdist_egg
  #       tmpdir = tempfile.mkdtemp()
         localdist_dir = self.dist_dir
+        eggs = self.getDistEggs()
 
         donepackages = []
         ids = {}
         self.develop_versions = {}
-        self.local_eggs = []
+        released = {}
+        if self.packages:
+            print "Hostout: Preparing eggs for transport"
         for path in self.packages:
 
             # use buildout to run setup for us
             hash = _dir_hash([path])
             ids[hash]=path
-            dist = [d for d in pkg_resources.find_distributions(path, only=True)]
-            dist = dist[0]
+            dist = [d for d in pkg_resources.find_distributions(path, only=True)][0]
 
-            if hash in dist.version:
+            egg = eggs.get( (dist.project_name, dist.version) )
+            if egg is not None and hash in dist.version:
                 self.develop_versions[dist.project_name] = dist.version
-                continue
-
-            if os.path.isdir(path):
+                self.local_eggs.append(egg.location)
+            elif os.path.isdir(path):
+                print "Hostout: Develop egg %s changed. Releasing with hash %s" % (path,hash)
                 res = self.setup(args=[path,
                                      'clean',
                                      'egg_info',
@@ -370,16 +386,26 @@ class Packages:
                                      '--dist-dir',
                                      '%s'%localdist_dir,
                                       ])
+                dist = [d for d in pkg_resources.find_distributions(path, only=True)]
+                dist = dist[0]
+                self.develop_versions[dist.project_name] = dist.version
+                released[dist.project_name] = dist.version
             else:
+                #TODO: What's the version here?
                 shutil.copy(path,localdist_dir)
-            donepackages.append(path)
-            #assert len(donepackages) == len(os.listdir(tmpdir)), "Egg wasn't generated. See errors above"
+        if released:
+            eggs = self.getDistEggs()
+            for (name,version) in released.items():
+                egg = eggs.get( (dist.project_name, dist.version) )
+                if egg is not None:
+                    self.local_eggs.append(egg.location)
+                else:
+                    raise "Egg wasn't generated. See errors above"
 
 
-        for dist in pkg_resources.find_distributions(localdist_dir):
-            if dist.project_name in self.develop_versions and \
-               self.develop_versions[dist.project_name] == dist.version:
-                    self.local_eggs.append(dist.location)
+        if self.local_eggs:
+            specs = ["%s==%s"%p for p in self.develop_versions.items()]
+            print "Hostout: Eggs to transport:\n%s" % '\n\t'.join(self.local_eggs)
         return self.local_eggs
 
     def getVersion(self, path):
@@ -405,6 +431,7 @@ class Packages:
         fp = open(versions_file,'w')
         config.write(fp)
         fp.close()
+        print "Hostout: Wrote versions to %s"%versions_file
 
 
     def setup(self, args):
@@ -447,17 +474,21 @@ def main(cfgfile, args):
         hostout = HostOut(section, options, packages)
         allhosts[section] = hostout
     if args:
-        cmd, hosts = args[0],args[1]
-        hosts = hosts.split()
+        cmd, hosts = args[0],args[1:]
         if 'all' in hosts:
             torun = allhosts.values()
         else:
             torun = [allhosts[host] for host in hosts if host in allhosts]
-        if cmd == 'deploy' and torun:
+        if not torun:
+            print >> sys.stderr, "Invalid hostout hostouts are: %s"% ' '.join(allhosts.keys())
+        elif cmd == 'deploy':
             for hostout in torun:
                 hostout.readsshconfig()
                 hostout.package_buildout()
                 hostout.runfabric()
+        else:
+            print >> sys.stderr, "Invalid command. Valid commands are - deploy"
+
 
 
 def uuid( *args ):

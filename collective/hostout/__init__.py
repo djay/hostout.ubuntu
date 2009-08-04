@@ -39,12 +39,13 @@ class Recipe:
 
         #get all recipes here to make sure we're the last called
         main = None
-        for part, recipe, options in self.getAllRecipes():
+        for part, recipe, opt in self.getAllRecipes():
             if recipe == self.options['recipe']:
-                main = options
-                if options.get('mainhostout'):
+                main = opt
+                if opt.get('mainhostout') == self.name:
                     break
-        options['mainhostout'] = 'true'
+        if main:
+            main['mainhostout'] = self.name
 
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.download_cache = self.buildout['buildout'].get('download-cache')
@@ -58,8 +59,8 @@ class Recipe:
         self.options.setdefault('effective-user','plone')
         self.host = self.options['host']
         self.options.setdefault('password','')
-        self.options.setdefault('start_cmd','')
-        self.options.setdefault('stop_cmd', '')
+        self.options.setdefault('post-commands', self.options.get('start_cmd',''))
+        self.options.setdefault('pre-commands', self.options.get('stop_cmd', ''))
         self.options.setdefault('extra_config','')
         self.options.setdefault('parts','')
         #self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
@@ -84,7 +85,19 @@ class Recipe:
             os.mkdir(location)
 
 
-        if self.options.has_key('mainhostout'):
+        config = ConfigParser.ConfigParser()
+        config.read(self.optionsfile)
+
+        fp = open(self.optionsfile, 'w+')
+        config.write(fp)
+        fp.close()
+        self.update()
+
+        return self.optionsfile
+
+    def update(self):
+
+        if self.options.get('mainhostout') is not None:
             requirements, ws = self.egg.working_set()
             bin = self.buildout['buildout']['bin-directory']
             extra_paths=[]
@@ -98,6 +111,7 @@ class Recipe:
 
         config = ConfigParser.ConfigParser()
         config.read(self.optionsfile)
+
         if not config.has_section(self.name):
             config.add_section(self.name)
         if not config.has_section('buildout'):
@@ -105,49 +119,36 @@ class Recipe:
         for name,value in self.options.items():
             config.set(self.name, name, value)
         config.set('buildout','location',self.buildout_dir)
-        if self.options.has_key('mainhostout'):
-            if not config.has_section('versions'):
-                config.add_section('versions')
-                for pkg,info in self.getVersions().items():
+
+        if not config.has_section('versions'):
+            config.add_section('versions')
+        if self.options.get('mainhostout') is not None:
+            for pkg,info in self.getVersions().items():
                     version,deps = info
                     config.set('versions',pkg,version)
             config.set('buildout', 'bin-directory', self.buildout.get('buildout').get('directory'))
             if self.options['dist_dir']:
                 config.set('buildout','dist_dir', self.options['dist_dir'])
 
-        fp = open(self.optionsfile, 'w+')
-        config.write(fp)
-        fp.close()
-        self.update()
-
-        return location
-
-    def update(self):
-        if not self.options.has_key('mainhostout'):
-            return
-        config = ConfigParser.ConfigParser()
-        config.read(self.optionsfile)
-        if not config.has_section('versions'):
-            config.add_section('versions')
-        for pkg,info in self.getVersions().items():
-            version,deps = info
-            config.set('versions',pkg,version)
-
-        packages = [p.strip() for p in self.buildout.get('buildout').get('develop','').split()]
-        packages += [p.strip() for p in self.options.get('packages','').split()]
-        config.set('buildout', 'packages', '\n   '.join(packages))
+            packages = [p.strip() for p in self.buildout.get('buildout').get('develop','').split()]
+            packages += [p.strip() for p in self.options.get('packages','').split()]
+            if not config.has_section('buildout'):
+                config.add_section('buildout')
+            config.set('buildout', 'packages', '\n   '.join(packages))
         #self.options.setdefault('develop','')
 
         fp = open(self.optionsfile, 'w+')
         config.write(fp)
         fp.close()
+        return self.optionsfile
 
 
 
     def getAllRecipes(self):
         recipes = []
+
         for part in [p.strip() for p in self.buildout['buildout']['parts'].split()]:
-            options = self.buildout.get(part)
+            options = self.buildout.get(part) #HACK
             if options is None or not options.get('recipe'):
                 continue
             try:

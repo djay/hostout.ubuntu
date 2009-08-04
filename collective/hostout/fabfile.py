@@ -34,12 +34,11 @@ def preparebuildout(hostout):
     #on suse sudo('/sbin/yast2 --install gcc')
     #eventually we want a more selfcontained solution. but for now this should work
     #run('export http_proxy=localhost:8123') # TODO get this from setting
-    run('(test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout) ||  cd /tmp && test -f $(unified).tgz || wget  --no-clobber --continue $(unified_url)')
-    run('test -d $(buildout_dir) && test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
-    sudo('test -d $(buildout_dir) || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo mkdir -p  $(install_dir) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)')
-    sudo('chown -R $(effectiveuser) $(install_dir)')
-    sudo('mkdir -p %(dc)s/dist && chown -R $(effectiveuser) %(dc)s'% dict(dc=hostout.getDownloadCache()))
-    sudo('mkdir -p %(dc)s && chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
+    run('(test -f $(buildout_dir)/bin/buildout) ||  cd /tmp && test -f $(unified).tgz || wget  --no-clobber --continue $(unified_url)')
+    run('test -f $(buildout_dir)/bin/buildout && test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
+    sudo('test -f $(buildout_dir)/bin/buildout || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo mkdir -p  $(install_dir) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && sudo chown -R $(effectiveuser) $(install_dir))')
+    sudo('mkdir -p %(dc)s/dist && sudo chown -R $(effectiveuser) %(dc)s'% dict(dc=hostout.getDownloadCache()))
+    sudo('mkdir -p %(dc)s && sudo chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
    # sudo('find $(install_dir) -exec chown $(effectiveuser) \{\} \;')
 #    sudo(prepare_cmd)
 
@@ -65,13 +64,18 @@ def installhostout(hostout):
             sudo("mv %s %s"%(tmp,tgt))
             sudo('chown $(effectiveuser) %s' % tgt)
 
+    package=hostout.getHostoutPackage()
+    tmp = join('/tmp', basename(package))
+    tgt = join(hostout.getDownloadCache(), basename(package))
+
     try:
-        sudo('test -f $(package_path)')
+        sudo('test -f %s'%tgt)
     except:
-        put('$(hostout_package)', '$(package_path)')
-        sudo('chown $(effectiveuser) $(package_path)')
+        put(package, tmp)
+        sudo("mv %s %s"%(tmp,tgt))
+        sudo('chown $(effectiveuser) %s' % tgt)
     #need a way to make sure ownership of files is ok
-    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf $(package_path) --directory=$(install_dir)')
+    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf %s --directory=$(install_dir)' % tgt)
 #    if hostout.getParts():
 #        parts = ' '.join(hostout.getParts())
  #       sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file) install %s"' % parts)
@@ -112,8 +116,6 @@ def deploy(hostout):
         #fab_key_filename="buildout_dsa",
         dist_dir=hostout.dist_dir,
         install_dir=hostout.remote_dir,
-        hostout_package=hostout.getHostoutPackage(),
-        package_path=os.path.abspath(os.path.join(hostout.getDownloadCache(), os.path.basename(hostout.getHostoutPackage()))),
         stop_cmd=hostout.stop_cmd,
         start_cmd=hostout.start_cmd,
         hostout_file=hostout.getHostoutFile(),
