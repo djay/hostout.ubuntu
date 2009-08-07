@@ -81,6 +81,7 @@ class HostOut:
         self.buildout_dir = packages.buildout_location
         self.dist_dir = packages.dist_dir
         self.packages = packages
+        self.hostout_package = None
 
         self.name = name
         self.effective_user = opt['effective-user']
@@ -108,19 +109,28 @@ class HostOut:
         #self.tar = None
 
     def getHostoutFile(self):
+        #make sure package has generated
+        self.getHostoutPackage()
         return self.config_file[len(self.packages.buildout_location)+1:]
+
     def getPreCommands(self):
         return self._subRemote(clean(self.stop_cmd))
+
     def getPostCommands(self):
         return self._subRemote(clean(self.start_cmd))
+
     def getBuildoutDependencies(self):
         abs = lambda p: os.path.abspath(os.path.join(self.getLocalBuildoutPath(),p))
         return [abs(p) for p in clean(self.extra_config)]
+
     def getLocalBuildoutPath(self):
         return os.path.abspath(self.packages.buildout_location)
+
     def getRemoteBuildoutPath(self):
         return self.remote_dir
+
     def localEggs(self):
+        self.getHostoutPackage() #ensure eggs are generated
         return self.packages.local_eggs
 
     def getParts(self):
@@ -135,12 +145,15 @@ class HostOut:
         "replace abs localpaths to the buildout with absluote remate buildout paths"
         return [c.replace(self.getLocalBuildoutPath(), self.getRemoteBuildoutPath()) for c in cmds]
 
-    def getDeployTar(self):
-        return self.packages.getDeployTar()
+#    def getDeployTar(self):
+#        return self.packages.getDeployTar()
 
-
-    def package_buildout(self):
+    def getHostoutPackage(self):
         "determine all the buildout files that make up this configuration and package them"
+
+        if self.hostout_package is not None:
+            return self.hostout_package
+
         folder = self.dist_dir
 
         dist_dir = self.packages.dist_dir
@@ -172,9 +185,8 @@ class HostOut:
             relative = file[len(self.buildout_dir)+1:] #TODO
             self.tar.add(file,arcname=relative)
         self.tar.close()
-
-    def getHostoutPackage(self):
         return self.hostout_package
+
 
     def getDSAKey(self):
         keyfile = os.path.abspath(os.path.join(self.buildout_location,'hostout_dsa'))
@@ -279,7 +291,7 @@ class HostOut:
         if 'buildout' not in config.sections():
             config.add_section('buildout')
         config.set('buildout', 'extends', relpath(self.buildout_cfg, base))
-        config.set('buildout','develop', '')
+        config.set('buildout', 'develop', '')
         config.set('buildout', 'eggs-directory', self.getEggCache())
         config.set('buildout', 'download-cache', self.getDownloadCache())
         config.set('buildout', 'newest', 'true')
@@ -396,7 +408,7 @@ class Packages:
         if released:
             eggs = self.getDistEggs()
             for (name,version) in released.items():
-                egg = eggs.get( (dist.project_name, dist.version) )
+                egg = eggs.get( (name, version) )
                 if egg is not None:
                     self.local_eggs.append(egg.location)
                 else:
@@ -404,8 +416,8 @@ class Packages:
 
 
         if self.local_eggs:
-            specs = ["%s==%s"%p for p in self.develop_versions.items()]
-            print "Hostout: Eggs to transport:\n%s" % '\n\t'.join(self.local_eggs)
+            specs = ["\t%s = %s"%p for p in self.develop_versions.items()]
+            print "Hostout: Eggs to transport:\n%s" % '\n'.join(specs)
         return self.local_eggs
 
     def getVersion(self, path):
@@ -484,7 +496,6 @@ def main(cfgfile, args):
         elif cmd == 'deploy':
             for hostout in torun:
                 hostout.readsshconfig()
-                hostout.package_buildout()
                 hostout.runfabric()
         else:
             print >> sys.stderr, "Invalid command. Valid commands are - deploy"

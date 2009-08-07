@@ -23,33 +23,36 @@ def createuser(buildout_user='buildout'):
     set(fab_key_filename=keyname)
 
 
-prepare_cmd = \
-"""((test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout)||(cd /tmp && wget $(unified_url) && tar -xvf /tmp/$(unified).tgz &&
-cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)))
-"""
-
 def preparebuildout(hostout):
     "install buildout and its dependencies"
-    #first need to ensure gcc installed
-    #on suse sudo('/sbin/yast2 --install gcc')
-    #eventually we want a more selfcontained solution. but for now this should work
     #run('export http_proxy=localhost:8123') # TODO get this from setting
-    run('(test -f $(buildout_dir)/bin/buildout) ||  cd /tmp && test -f $(unified).tgz || wget  --no-clobber --continue $(unified_url)')
-    run('test -f $(buildout_dir)/bin/buildout && test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
-    sudo('test -f $(buildout_dir)/bin/buildout || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo mkdir -p  $(install_dir) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && sudo chown -R $(effectiveuser) $(install_dir))')
-    sudo('mkdir -p %(dc)s/dist && sudo chown -R $(effectiveuser) %(dc)s'% dict(dc=hostout.getDownloadCache()))
-    sudo('mkdir -p %(dc)s && sudo chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
-   # sudo('find $(install_dir) -exec chown $(effectiveuser) \{\} \;')
-#    sudo(prepare_cmd)
 
-#    try:
-#        run('ls $(buildout_dir)/bootstrap.py')
-#    except:
-#        put('bootstrap.py','$(buildout_dir)')
-#    try:
-#        run('ls $(buildout_dir)/bin')
-#    except:
-#        run('cd $(buildout_dir); python bootstrap.py')
+    set(dist_dir = hostout.getDownloadCache(),
+        unified='Plone-3.2.1r3-UnifiedInstaller',
+        unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
+        )
+
+    sudo('mkdir -p $(dist_dir)/dist && sudo chown -R $(effectiveuser) $(dist_dir)')
+    sudo('mkdir -p %(dc)s && sudo chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
+
+    #Download the unified installer if we don't have it
+    sudo('test -f $(buildout_dir)/bin/buildout || \
+         test -f $(dist_dir)/$(unified).tgz || \
+         ( cd /tmp && \
+         wget  --continue $(unified_url) && \
+         sudo mv /tmp/$(unified).tgz $(dist_dir)/$(unified).tgz && \
+         sudo chown $(effectiveuser) $(dist_dir)/$(unified).tgz \
+         ) \
+         ')
+    # untar and run unified installer
+    sudo('test -f $(buildout_dir)/bin/buildout || \
+          (cd /tmp && \
+          tar -xvf $(dist_dir)/$(unified).tgz && \
+          test -d /tmp/$(unified) && \
+          cd /tmp/$(unified) && \
+          sudo mkdir -p  $(install_dir) && \
+          sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && \
+          sudo chown -R $(effectiveuser) $(install_dir)/$(instance))')
 
 def installhostout(hostout):
     "deploy the package of changed cfg files"
@@ -74,6 +77,14 @@ def installhostout(hostout):
         put(package, tmp)
         sudo("mv %s %s"%(tmp,tgt))
         sudo('chown $(effectiveuser) %s' % tgt)
+
+    set(
+        #fab_key_filename="buildout_dsa",
+        dist_dir=hostout.dist_dir,
+        install_dir=hostout.remote_dir,
+        hostout_file=hostout.getHostoutFile(),
+    )
+
     #need a way to make sure ownership of files is ok
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf %s --directory=$(install_dir)' % tgt)
 #    if hostout.getParts():
@@ -100,8 +111,6 @@ def deploy(hostout):
         fab_hosts=[hostout.host],
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
-        unified='Plone-3.2.1r3-UnifiedInstaller',
-        unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
         install_dir=os.path.split(hostout.remote_dir)[0],
         instance=os.path.split(hostout.remote_dir)[1],
         download_cache=hostout.getDownloadCache()
@@ -110,16 +119,6 @@ def deploy(hostout):
         sudo('sh -c "%s"'%cmd)
 
     preparebuildout(hostout)
-    set(
-        buildout_user=hostout.effective_user,
-        fab_user=hostout.user,
-        #fab_key_filename="buildout_dsa",
-        dist_dir=hostout.dist_dir,
-        install_dir=hostout.remote_dir,
-        stop_cmd=hostout.stop_cmd,
-        start_cmd=hostout.start_cmd,
-        hostout_file=hostout.getHostoutFile(),
-    )
     installhostout(hostout)
     for cmd in hostout.getPostCommands():
         sudo('sh -c "%s"'%cmd)
