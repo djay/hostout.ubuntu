@@ -11,35 +11,30 @@ We add collective.	hostout to our development buildout
     >>> write('buildout.cfg',
     ... """
     ... [buildout]
-    ... parts = hostout
+    ... parts = host1
     ... 
-    ... [hostout]
+    ... [host1]
     ... recipe = collective.hostout
-    ... host = localhost
+    ... host = localhost:10022
+    ... password = blah
+    ... user = root
     ... """ % globals())
-    
+
+If you don't include your password you will be prompted for it later.    
     
  Now we run the buildout
 
-    >>> print system('bin/buildout -o')
-    Installing hostout.
+    >>> print system('bin/buildout -N')
+    Installing host1.
     Generated script '/sample-buildout/bin/hostout'.
 
-We can run the hostout script the first time. It will
+The generated script is run with a command and host as arguments
 
-1. package our release
+    >>> print system('bin/hostout deploy host1')
+    Logging into the following hosts as :
+        localhost
 
-2. send it to the server
 
-3. create a buildout environment running under a virtualenv if need be
-
-4. run a buildout pinned to the eggs that were selected when you last ran buildout locally
-
-5. start up your application
-
-Let's see that working
-
-    >>> print system('bin/hostout'),
     Creating release 45454345345
     Producing source distribution for src/example with version 2343243434
     ...
@@ -66,6 +61,19 @@ Let's see that working
     Deployment complete at verson 0.1
 
 We now have a live version of our buildout deployed and running on our host.
+
+
+We can run the hostout script the first time. It will
+
+1. package our release
+
+2. send it to the server
+
+3. create a buildout environment running under a virtualenv if need be
+
+4. run a buildout pinned to the eggs that were selected when you last ran buildout locally
+
+5. start up your application
 
 
 Options

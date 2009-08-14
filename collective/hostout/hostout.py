@@ -90,7 +90,6 @@ class HostOut:
         self.user = opt['user']
         self.password = opt['password']
         self.identityfile = opt['identity_file']
-        #create new buildout so we can analyse the working set.
         self.start_cmd = opt.get('post-commands')
         self.stop_cmd = opt.get('pre-commands')
         self.extra_config = opt['extra_config']

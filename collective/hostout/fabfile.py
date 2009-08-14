@@ -54,6 +54,15 @@ def preparebuildout(hostout):
           sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && \
           sudo chown -R $(effectiveuser) $(install_dir)/$(instance))')
 
+
+#TODO Need to hook into init.d
+#http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
+#cd /etc/init.d/
+#ln -s INSTANCE_HOME/bin/supervisord project-supervisord
+#ln -s INSTANCE_HOME/bin/supervisorctl project-supervisorctl
+#update-rc.d project-supervisord defaults
+
+
 def installhostout(hostout):
     "deploy the package of changed cfg files"
     #need to send package. cycledown servers, install it, run buildout, cycle up servers

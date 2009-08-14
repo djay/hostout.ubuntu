@@ -50,7 +50,6 @@ setup(
                         'setuptools',
                         'Fabric<0.1.0', #in order to make it 2.4 compatible
                         'functools' ,#needed for fabric to make it 2.4 compatible
-                        'setuptools-git',
                         ],
     entry_points = {'zc.buildout':
                     ['default = collective.hostout:Recipe']},
