@@ -4,3 +4,7 @@
 build
 dist
 bin
+.installed.cfg
+develop-eggs
+setup.cfg
+

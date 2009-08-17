@@ -100,7 +100,8 @@ def installhostout(hostout):
 #        parts = ' '.join(hostout.getParts())
  #       sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file) install %s"' % parts)
   #  else:
-    sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file)"')
+    #Need to set home var for svn to work
+    sudo('sudo -u $(effectiveuser) sh -c "export HOME=~$(effectiveuser) && cd $(install_dir) && bin/buildout -c $(hostout_file)"')
 
 #    run('cd $(install_dir) && $(reload_cmd)')
 #    sudo('chmod 600 .installed.cfg')
