@@ -379,9 +379,12 @@ class Packages:
             # use buildout to run setup for us
             hash = _dir_hash([path])
             ids[hash]=path
-            dist = [d for d in pkg_resources.find_distributions(path, only=True)][0]
-
-            egg = eggs.get( (dist.project_name, dist.version) )
+            dist = [d for d in pkg_resources.find_distributions(path, only=True)]
+            if dist:
+                dist = dist[0]
+                egg = eggs.get( (dist.project_name, dist.version) )
+            else:
+                egg = None
             if egg is not None and hash in dist.version:
                 self.develop_versions[dist.project_name] = dist.version
                 self.local_eggs.append(egg.location)
