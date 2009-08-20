@@ -2,18 +2,18 @@ Release History
 ***************
 
 
-0.1.4 (2009-07-27)
+0.2 (2009-07-27)
 ==================
 - new commandline to allow deploying to multiple hosts at once
 - moved hostout cfg generation to deployment time
-- egg releases use versioned by hash of contents and won't built or uploaded unless changed
+- egg releases hash of contents as version numbers and won't be built or uploaded unless changed
 - new parts option to only install specified parts
 - start_cmd and stop_cmd renamed to pre-commands and post-commamnds (backwards compatibility maintained)
 - pre-commmands now runs before buildout initialisation
 - version recognition only done once for all hostout parts
-- buildout now run as 'effective-user' rather than root
-- eggs released directly to the download dist cache rather than a seperate dist directory
-
+- buildout now run as 'effective-user' rather than root. pre and post commands still run as root
+- eggs released directly to the download cache rather than a seperate dist directory
+- ability to take defaults from another part using 'extends' paramater
 
 
 0.1.3 (2009-05-06)

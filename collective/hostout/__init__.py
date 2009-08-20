@@ -47,34 +47,44 @@ class Recipe:
         if main:
             main['mainhostout'] = self.name
 
+
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.download_cache = self.buildout['buildout'].get('download-cache')
         self.install_from_cache = self.buildout['buildout'].get('install-from-cache')
         self.options['versions'] = self.buildout['buildout'].get('versions','versions')
-
-        self.options['dist_dir'] = self.options.get('dist_dir','dist')
-        self.options.setdefault('buildout','buildout.cfg')
-        self.options.setdefault('user','')
-        self.options.setdefault('identity_file','')
-        self.options.setdefault('effective-user','plone')
-        self.host = self.options['host']
-        self.options.setdefault('password','')
-        self.options.setdefault('post-commands', self.options.get('start_cmd',''))
-        self.options.setdefault('pre-commands', self.options.get('stop_cmd', ''))
-        self.options.setdefault('extra_config','')
-        self.options.setdefault('parts','')
-        #self.stop_cmd = self.stop_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
-        #self.start_cmd = self.start_cmd.replace(buildout['buildout']['directory'],self.remote_dir)
-        #replace any references to the localbuildout dir with the remote buildout dir
-        self.options.setdefault('remote_path','~%s/buildout'%self.options['user'])
-#        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
-        self.options.setdefault('buildout_location',self.buildout_dir)
-
         self.options['location'] = os.path.join(
             self.buildout['buildout']['parts-directory'],
             'hostout',
             )
         self.optionsfile = join(self.options['location'],'hostout.cfg')
+
+        extends = [e.strip() for e in self.options.get('extends','').split() if e.strip()]
+
+        for extension in reversed(extends):
+            extension = buildout.get(extension)
+            if extension is None:
+                continue
+            for key in extension:
+                if key not in self.options:
+                    self.options[key] = extension[key]
+
+
+#        self.options.setdefault('dist_dir' = self.options.get('dist_dir','dist')
+        self.options.setdefault('buildout','buildout.cfg')
+        self.options.setdefault('user','root')
+        self.options.setdefault('identity_file','')
+        self.options.setdefault('effective-user','plone')
+        self.options.setdefault('host', 'localhost')
+        self.options.setdefault('password','')
+        self.options.setdefault('post-commands', self.options.get('start_cmd',''))
+        self.options.setdefault('pre-commands', self.options.get('stop_cmd', ''))
+        self.options.setdefault('extra_config','')
+        self.options.setdefault('parts','')
+        self.options.setdefault('remote_path','~%s/buildout'%self.options['user'])
+#        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
+        self.options.setdefault('buildout_location',self.buildout_dir)
+
+
 
     def install(self):
         logger = logging.getLogger(self.name)
@@ -127,8 +137,8 @@ class Recipe:
                     version,deps = info
                     config.set('versions',pkg,version)
             config.set('buildout', 'bin-directory', self.buildout.get('buildout').get('directory'))
-            if self.options['dist_dir']:
-                config.set('buildout','dist_dir', self.options['dist_dir'])
+#            if self.options['dist_dir']:
+#                config.set('buildout','dist_dir', self.options['dist_dir'])
 
             packages = [p.strip() for p in self.buildout.get('buildout').get('develop','').split()]
             packages += [p.strip() for p in self.options.get('packages','').split()]

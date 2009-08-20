@@ -21,7 +21,7 @@ def read(*rnames):
 name = "collective.hostout"
 setup(
     name = name,
-    version = "0.1.4",
+    version = "0.2",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = "one click deployment for buildout based applications",
