@@ -101,6 +101,11 @@ class HostOut:
             install_base = os.path.dirname(self.getRemoteBuildoutPath())
             self.buildout_cache = os.path.join(install_base,'buildout-cache')
 
+        from pkg_resources import resource_string, resource_filename
+        fabfile = resource_filename(__name__, 'fabfile.py')
+
+        self.fabfiles = [p.strip() for p in opt['fabfiles'].split() if p.strip()] + [fabfile]
+
         #self.packages = opt['packages']
         #dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
         #if not os.path.exists(dist_dir):
@@ -227,26 +232,26 @@ class HostOut:
 
 
 
-    def runfabric(self):
-        if self.remote_dir[0] not in ['/','~']:
-            remote_dir = '~%s/%s' %(self.remote_dir,self.effective_user)
+    def runfabric(self, command):
+        "return all commands if none found to run"
 
- #       args = (self.user,self.password,self.identityfile,self.remote_dir,self.dist_dir,self.packages)
- #       args = ['deploy:user=%s,password=%s,identityfile=%s,remote_dir=%s,dist_dir=%s,package=%s'%args]
-
-        from pkg_resources import resource_string, resource_filename
-        fabfile = resource_filename(__name__, 'fabfile.py')
-
-        #here = os.path.abspath(os.path.dirname(__file__))
-        #fabfile = os.path.join(here,'fabfile.py')
+        cmds = {}
+        cmd = None
 
         try:
             try:
 
-                fabric._load_default_settings()
-                fabric.load(fabfile, fail='warn')
-                cmd = fabric.COMMANDS['deploy']
-                cmd(self)
+                for fabfile in reversed(self.fabfiles):
+
+                    fabric._load_default_settings()
+                    fabric.load(fabfile, fail='warn')
+                    cmds.update(fabric.COMMANDS)
+                    cmd = fabric.COMMANDS.get(command, None)
+                    if cmd is not None:
+                        cmd(self)
+                if cmd is None:
+                    return cmds.keys()
+
             finally:
                 fabric._disconnect()
             print("Done.")
@@ -255,12 +260,10 @@ class HostOut:
             raise
         except KeyboardInterrupt:
             print("Stopped.")
-            return False
         #    except:
         #        sys.excepthook(*sys.exc_info())
         #        # we might leave stale threads if we don't explicitly exit()
         #        return False
-        return True
 
     def genhostout(self):
         """ generate a new buildout file which pins versions and uses our deployment distributions"""
@@ -495,12 +498,15 @@ def main(cfgfile, args):
             torun = [allhosts[host] for host in hosts if host in allhosts]
         if not torun:
             print >> sys.stderr, "Invalid hostout hostouts are: %s"% ' '.join(allhosts.keys())
-        elif cmd == 'deploy':
+        elif cmd:
             for hostout in torun:
                 hostout.readsshconfig()
-                hostout.runfabric()
+                res = hostout.runfabric(cmd)
+                if res:
+                    print >> sys.stderr, "Invalid command. Valid commands are - %s"%res
+
         else:
-            print >> sys.stderr, "Invalid command. Valid commands are - deploy"
+            print >> sys.stderr, "Please specify a command"
 
 
 

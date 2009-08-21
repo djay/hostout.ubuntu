@@ -57,6 +57,7 @@ class Recipe:
             'hostout',
             )
         self.optionsfile = join(self.options['location'],'hostout.cfg')
+        self.fabfiles = []
 
         extends = [e.strip() for e in self.options.get('extends','').split() if e.strip()]
 
@@ -65,11 +66,13 @@ class Recipe:
             if extension is None:
                 continue
             for key in extension:
+                if key == 'fabfile':
+                    self.fabfiles.append(extension[key])
                 if key not in self.options:
                     self.options[key] = extension[key]
 
 
-#        self.options.setdefault('dist_dir' = self.options.get('dist_dir','dist')
+        self.options.setdefault('dist_dir','dist')
         self.options.setdefault('buildout','buildout.cfg')
         self.options.setdefault('user','root')
         self.options.setdefault('identity_file','')
@@ -83,6 +86,7 @@ class Recipe:
         self.options.setdefault('remote_path','~%s/buildout'%self.options['user'])
 #        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
         self.options.setdefault('buildout_location',self.buildout_dir)
+        self.options['fabfiles'] = '\n\t'.join(self.fabfiles)
 
 
 
@@ -137,8 +141,8 @@ class Recipe:
                     version,deps = info
                     config.set('versions',pkg,version)
             config.set('buildout', 'bin-directory', self.buildout.get('buildout').get('directory'))
-#            if self.options['dist_dir']:
-#                config.set('buildout','dist_dir', self.options['dist_dir'])
+            if self.options['dist_dir']:
+                config.set('buildout','dist_dir', self.options['dist_dir'])
 
             packages = [p.strip() for p in self.buildout.get('buildout').get('develop','').split()]
             packages += [p.strip() for p in self.options.get('packages','').split()]

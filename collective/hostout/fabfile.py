@@ -23,7 +23,7 @@ def createuser(buildout_user='buildout'):
     set(fab_key_filename=keyname)
 
 
-def preparebuildout(hostout):
+def predeploy(hostout):
     "install buildout and its dependencies"
     #run('export http_proxy=localhost:8123') # TODO get this from setting
 
@@ -54,6 +54,9 @@ def preparebuildout(hostout):
           sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && \
           sudo chown -R $(effectiveuser) $(install_dir)/$(instance))')
 
+    for cmd in hostout.getPreCommands():
+        sudo('sh -c "%s"'%cmd)
+
 
 #TODO Need to hook into init.d
 #http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
@@ -63,9 +66,11 @@ def preparebuildout(hostout):
 #update-rc.d project-supervisord defaults
 
 
-def installhostout(hostout):
+def dodeploy(hostout):
     "deploy the package of changed cfg files"
+
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
+
     for pkg in hostout.localEggs():
         tmp = join('/tmp', basename(pkg))
         tgt = join(hostout.getDownloadCache(), 'dist', basename(pkg))
@@ -125,11 +130,12 @@ def deploy(hostout):
         instance=os.path.split(hostout.remote_dir)[1],
         download_cache=hostout.getDownloadCache()
     )
-    for cmd in hostout.getPreCommands():
-        sudo('sh -c "%s"'%cmd)
 
-    preparebuildout(hostout)
-    installhostout(hostout)
+    predeploy(hostout)
+    dodeploy(hostout)
+    postdeploy(hostout)
+
+def postdeploy(hostout):
     for cmd in hostout.getPostCommands():
         sudo('sh -c "%s"'%cmd)
 
