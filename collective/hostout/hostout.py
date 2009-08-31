@@ -93,7 +93,7 @@ class HostOut:
         self.start_cmd = opt.get('post-commands')
         self.stop_cmd = opt.get('pre-commands')
         self.extra_config = opt['extra_config']
-        self.buildout_cfg = opt['buildout']
+        self.buildout_cfg = [p.strip() for p in opt['buildout'].split() if p.strip()]
         self.versions_part = opt.get('versions','versions')
         self.parts = [p.strip() for p in opt['parts'].split() if p.strip()]
         self.buildout_cache = opt.get('buildout-cache','')
@@ -265,25 +265,26 @@ class HostOut:
         #        # we might leave stale threads if we don't explicitly exit()
         #        return False
 
-    def genhostout(self):
-        """ generate a new buildout file which pins versions and uses our deployment distributions"""
+#    def genhostout(self):
+#        """ generate a new buildout file which pins versions and uses our deployment distributions"""
+#
+
+#        base = self.buildout_dir
 
 
-        base = self.buildout_dir
-
-        buildoutfile = relpath(self.buildout_cfg, base)
-        dist_dir = relpath(self.dist_dir, base)
+#        files = [relpath(file, base) for file in self.buildout_cfg]
+        #dist_dir = relpath(self.dist_dir, base)
         #versions = ""
-        hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=buildoutfile,
-                                          eggdir=dist_dir,
-                                          download_cache=self.getDownloadCache(),
-                                          egg_cache=self.getEggCache(),
-                                          )
-        path = os.path.join(base,'%s.cfg'%self.name)
-        hostoutf = open(path,'w')
-        hostoutf.write(hostout)
-        hostoutf.close()
-        return path
+#        hostout = HOSTOUT_TEMPLATE % dict(buildoutfile=' '.join(files),
+                                          #eggdir=dist_dir,
+ #                                         download_cache=self.getDownloadCache(),
+ #                                         egg_cache=self.getEggCache(),
+ #                                         )
+ #       path = os.path.join(base,'%s.cfg'%self.name)
+ #       hostoutf = open(path,'w')
+ #       hostoutf.write(hostout)
+ #       hostoutf.close()
+ #       return path
 
     def genhostout(self):
         base = self.buildout_dir
@@ -292,7 +293,9 @@ class HostOut:
         config.read([path])
         if 'buildout' not in config.sections():
             config.add_section('buildout')
-        config.set('buildout', 'extends', relpath(self.buildout_cfg, base))
+        files = [relpath(file, base) for file in self.buildout_cfg]
+
+        config.set('buildout', 'extends', ' '.join(files))
         config.set('buildout', 'develop', '')
         config.set('buildout', 'eggs-directory', self.getEggCache())
         config.set('buildout', 'download-cache', self.getDownloadCache())
@@ -310,9 +313,6 @@ class HostOut:
 HOSTOUT_TEMPLATE = """
 [buildout]
 extends = %(buildoutfile)s
-
-#Our own packaged eggs
-find-links += %(eggdir)s
 
 #prevent us looking for them as developer eggs
 develop=
@@ -408,8 +408,8 @@ class Packages:
                 self.develop_versions[dist.project_name] = dist.version
                 released[dist.project_name] = dist.version
             else:
-                #TODO: What's the version here?
-                shutil.copy(path,localdist_dir)
+#                shutil.copy(path,localdist_dir)
+                self.local_eggs.append(path)
         if released:
             eggs = self.getDistEggs()
             for (name,version) in released.items():
