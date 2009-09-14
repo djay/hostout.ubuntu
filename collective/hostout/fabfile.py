@@ -1,4 +1,5 @@
 import os
+from os.path import join, basename, dirname
 
 def createuser(buildout_user='buildout'):
     "Creates a user account to run the buildout in"
@@ -22,57 +23,100 @@ def createuser(buildout_user='buildout'):
     set(fab_key_filename=keyname)
 
 
-prepare_cmd = \
-"""((test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout)||(cd /tmp && wget $(unified_url) && tar -xvf /tmp/$(unified).tgz &&
-cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)))
-"""
-
-def preparebuildout():
+def predeploy(hostout):
     "install buildout and its dependencies"
-    #first need to ensure gcc installed
-    #on suse sudo('/sbin/yast2 --install gcc')
-    #eventually we want a more selfcontained solution. but for now this should work
     #run('export http_proxy=localhost:8123') # TODO get this from setting
-    run('(test -d $(buildout_dir) && test -d $(buildout_dir)/bin/buildout) || cd /tmp && test -f $(unified).tgz || wget $(unified_url)')
-    run('test -d $(buildout_dir) && test -d /tmp/$(unified) || (cd /tmp && tar -xvf /tmp/$(unified).tgz)')
-    sudo('test -d $(buildout_dir) || (test -d /tmp/$(unified) && cd /tmp/$(unified) && sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone)')
-#    sudo(prepare_cmd)
 
-#    try:
-#        run('ls $(buildout_dir)/bootstrap.py')
-#    except:
-#        put('bootstrap.py','$(buildout_dir)')
-#    try:
-#        run('ls $(buildout_dir)/bin')
-#    except:
-#        run('cd $(buildout_dir); python bootstrap.py')
+    set(dist_dir = hostout.getDownloadCache(),
+        unified='Plone-3.2.1r3-UnifiedInstaller',
+        unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
+        )
 
-def installhostout():
+    sudo('mkdir -p $(dist_dir)/dist && sudo chown -R $(effectiveuser) $(dist_dir)')
+    sudo('mkdir -p %(dc)s && sudo chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
+
+    #Download the unified installer if we don't have it
+    sudo('test -f $(buildout_dir)/bin/buildout || \
+         test -f $(dist_dir)/$(unified).tgz || \
+         ( cd /tmp && \
+         wget  --continue $(unified_url) && \
+         sudo mv /tmp/$(unified).tgz $(dist_dir)/$(unified).tgz && \
+         sudo chown $(effectiveuser) $(dist_dir)/$(unified).tgz \
+         ) \
+         ')
+    # untar and run unified installer
+    sudo('test -f $(buildout_dir)/bin/buildout || \
+          (cd /tmp && \
+          tar -xvf $(dist_dir)/$(unified).tgz && \
+          test -d /tmp/$(unified) && \
+          cd /tmp/$(unified) && \
+          sudo mkdir -p  $(install_dir) && \
+          sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && \
+          sudo chown -R $(effectiveuser) $(install_dir)/$(instance))')
+
+    for cmd in hostout.getPreCommands():
+        sudo('sh -c "%s"'%cmd)
+
+
+#TODO Need to hook into init.d
+#http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
+#cd /etc/init.d/
+#ln -s INSTANCE_HOME/bin/supervisord project-supervisord
+#ln -s INSTANCE_HOME/bin/supervisorctl project-supervisorctl
+#update-rc.d project-supervisord defaults
+
+
+def dodeploy(hostout):
     "deploy the package of changed cfg files"
+
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
 
-    local('test -f $(package_path)')
-    put('$(package_path)', '/tmp/$(hostout_package)')
-    sudo('sh -c "$(stop_cmd)||echo unable to stop application"')
+    for pkg in hostout.localEggs():
+        tmp = join('/tmp', basename(pkg))
+        tgt = join(hostout.getDownloadCache(), 'dist', basename(pkg))
+        try:
+            sudo('test -f %s'%tgt)
+        except:
+            put(pkg, tmp)
+            sudo("mv %s %s"%(tmp,tgt))
+            sudo('chown $(effectiveuser) %s' % tgt)
+
+    package=hostout.getHostoutPackage()
+    tmp = join('/tmp', basename(package))
+    tgt = join(hostout.getDownloadCache(), basename(package))
+
+    try:
+        sudo('test -f %s'%tgt)
+    except:
+        put(package, tmp)
+        sudo("mv %s %s"%(tmp,tgt))
+        sudo('chown $(effectiveuser) %s' % tgt)
+
+    set(
+        #fab_key_filename="buildout_dsa",
+        dist_dir=hostout.dist_dir,
+        install_dir=hostout.remote_dir,
+        hostout_file=hostout.getHostoutFile(),
+    )
+
     #need a way to make sure ownership of files is ok
-    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf /tmp/$(hostout_package) --directory=$(install_dir)')
-    sudo('sh -c "cd $(install_dir) && bin/buildout -c hostout.cfg"')
+    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf %s --directory=$(install_dir)' % tgt)
+#    if hostout.getParts():
+#        parts = ' '.join(hostout.getParts())
+ #       sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file) install %s"' % parts)
+  #  else:
+    #Need to set home var for svn to work
+    sudo('sudo -u $(effectiveuser) sh -c "export HOME=~$(effectiveuser) && cd $(install_dir) && bin/buildout -c $(hostout_file)"')
+
 #    run('cd $(install_dir) && $(reload_cmd)')
-    sudo('sh -c "$(start_cmd)"')
+#    sudo('chmod 600 .installed.cfg')
+#    sudo('find $(install_dir)  -type d -name var -exec chown -R $(effectiveuser) \{\} \;')
+#    sudo('find $(install_dir)  -type d -name LC_MESSAGES -exec chown -R $(effectiveuser) \{\} \;')
+#    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
 
 
-def deploy(hostout, package):
-#           host,user='plone',
-#           password=None,
-#           identityfile=None,
-#           buildout_user='plone',
-#           remote_dir='buildout',
-#           dist_dir='dist',
-#           package='deploy_1',
-#           start_cmd='bin/supervisorctl reload && bin/supervisorctl start all',
-#           stop_cmd='bin/supervisorctl stop all'
-#           ):
-    "Prints hello."
+def deploy(hostout):
+    ""
     if hostout.password:
         set(fab_password=hostout.password)
     if hostout.identityfile:
@@ -82,23 +126,17 @@ def deploy(hostout, package):
         fab_hosts=[hostout.host],
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
-        unified='Plone-3.2.1r3-UnifiedInstaller',
-        unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
         install_dir=os.path.split(hostout.remote_dir)[0],
         instance=os.path.split(hostout.remote_dir)[1],
+        download_cache=hostout.getDownloadCache()
     )
-    preparebuildout()
-    set(
-        buildout_user=hostout.effective_user,
-        fab_user=hostout.user,
-        #fab_key_filename="buildout_dsa",
-        dist_dir=hostout.dist_dir,
-        install_dir=hostout.remote_dir,
-        hostout_package=package,
-        package_path=os.path.abspath(os.path.join(hostout.dist_dir,package)),
-        stop_cmd=hostout.stop_cmd,
-        start_cmd=hostout.start_cmd,
-    )
-    installhostout()
+
+    predeploy(hostout)
+    dodeploy(hostout)
+    postdeploy(hostout)
+
+def postdeploy(hostout):
+    for cmd in hostout.getPostCommands():
+        sudo('sh -c "%s"'%cmd)
 
 

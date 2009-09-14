@@ -1,75 +1,122 @@
  
 
-**Warning: This is alpha software. The api and the way it's used may change and using it with production
-systems is at your own risk**
- 
+Often we have a buildout installed and working on a development machine and we need to get it working on
+one or many hosts quickly and easily. First we add the collective.hostout part to our development buildout
 
-We have a buildout which we want to deploy to a brand new host
-
-We add collective.	hostout to our development buildout
 
     >>> write('buildout.cfg',
     ... """
     ... [buildout]
-    ... parts = hostout
-    ... index = http://pypi.python.org/simple
+    ... parts = example host1
+    ... develop = src/example
+    ...
+    ... [example]
+    ... recipe = zc.recipe.eggs
+    ... egg = example
     ... 
-    ... [hostout]
+    ... [host1]
     ... recipe = collective.hostout
-    ... host = localhost
-    ... """)
+    ... host = localhost:10022
+    ... user = root
+    ... password = root
+    ... path = /usr/local/plone/host1
+    ... """ % globals())
+
+If you don't include your password you will be prompted for it later.    
     
- Now we run the buildout
+ Don't forget to rerun your buildout to install the hostout script in your buildout bin directory
 
-    >>> print system('bin/buildout'),
+    >>> print system('bin/buildout -N')
+    Installing example.
+    Installing host1.
+    Generated script '/sample-buildout/bin/hostout'.
+
+The generated script is run with a command and host(s) as arguments
+
+    >>> print system('bin/hostout deploy')
+	Please specify a command: Commands are: deploy
+	
+    >>> print system('bin/hostout deploy')
+    Invalid hostout: Hostouts are: host1 all
+
+The deploy command will login to your host and setup a buildout environment if it doesn't exist, upload
+and installs the buildout.
+
+    >>> print system('bin/hostout deploy host1')
+    Logging into the following hosts as root:
+        localhost
+    Password for root@localhost: 
     ...
-    Installing hostout.
-    hostout: Creating deployment script bin/hostout
-    hostout: Creating hostout.cfg with pinned buildout versions
+	Hostout: Preparing eggs for transport
+	Hostout: Develop egg .../example changed. Releasing with hash ...
+	...
+	creating '.../example-1.0dev_...-py2.4.egg' and adding 'build/bdist.../egg' to it
+	removing 'build/bdist.../egg' (and everything under it)
+	Hostout: Eggs to transport:
+		example = 10dev-...
+    ...
+    Hostout: Wrote versions to /.../host1.cfg
+    ...
+    [localhost] put: /.../dist/deploy_....tgz -> /tmp/deploy_....tgz
+    ...
+    [localhost] sudo: sudo -u plone sh -c "export HOME=~plone && cd /var/plone && bin/buildout -c buildout.cfg"
+    ...
+    [localhost] out: Installing example.
+    [localhost] out: Getting distribution for 'example'.
+    [localhost] out: Got example 1.0dev-....
+    [localhost] out: Installing host1.
     ...
 
+We now have a live version of our buildout deployed to our host
 
-We can run the hostout script the first time. It will
+For more complicated arrangements you can use the extends value to share defaults 
+between multiple hostout definitions
 
-1. package our release
-
-2. send it to the server
-
-3. create a buildout environment running under a virtualenv if need be
-
-4. run a buildout pinned to the eggs that were selected when you last ran buildout locally
-
-5. start up your application
-
-Let's see that working
-
-    >>> print system('bin/hostout'),
-    Creating release 45454345345
-    Producing source distribution for src/example with version 2343243434
+    >>> write('buildout.cfg',
+    ... """
+    ... [buildout]
+    ... parts = prod staging
     ...
-    Packaged eggs and buildout into deploy-5445454.tgz
+    ... [hostout]
+    ... password = blah
+    ... user = root
+    ... identity-file = id_dsa.pub
+    ... pre-commands =
+    ...    apt-get -y install openssl  libssl-dev
+    ...    ${buildout:directory}/bin/supervisorctl shutdown || echo 'Unable to shutdown'
+    ... post-commands = 
+    ...    ${buildout:directory}/bin/supervisord
+    ... effective-user = plone
+    ... include = config/haproxy.in
+    ...  
+    ... 
+    ... [prod]
+    ... recipe = collective.hostout
+    ... extends = hostout
+    ... host = www.prod.com
+    ... buildout =
+    ...    config/prod.cfg
+    ...    kgs.cfg
+    ... path = /var/plone/prod
     ...
-    [localhost] put: /Users/dylanjay/Projects/csiro/dist/deploy_1.tgz -> /tmp/deploy_1.tgz
+    ... [staging]
+    ... recipe = collective.hostout
+    ... extends = hostout
+    ... host = staging.prod.com
+    ... buildout =
+    ...    config/staging.cfg
+    ...    kgs.cfg
+    ... path = /var/plone/staging
     ...
-    Connecting to localhost.
-    User 'plone' not found or unable to connect
-    If this is the first time running this script please enter your root credentials
-    This will prepare your host to recieve your buildout
-    user: root
-    password: root
-    Creating user account 'deploy'
-    Creating authorisation key pair
-    Logging in as 'deploy'
-    Installing python virtualenv
-    Pinning egg versions
-    Deploying eggs to host...done
-    Deploying buildout to host...done
-    Stopping remote services...done
-    Running remote buildout...done
-    Starting remote services...done
-    Deployment complete at verson 0.1
+    ... """ % globals())
 
-We now have a live version of our buildout deployed and running on our host.
+    >>> print system('bin/buildout -N')
+    Installing prod.
+    Installing staging.
+    Generated script '/sample-buildout/bin/hostout'.
+
+    >>> print system('bin/hostout deploy')
+    Invalid hostout hostouts are: prod staging
 
 
 Options
@@ -80,10 +127,13 @@ host
   You can override the port by using hostname:port
 
 user
-  The user which hostout will attempt to login to your host as. Defaults to root
+  The user which hostout will attempt to login to your host as. Will read a users ssh config to get a default.
 
 password
   The password for the login user. If not given then hostout will ask each time.
+  
+identity-file
+  A public key for the login user.
 
 buildout
   The configuration file you which to build on the remote host. Note this doesn't have
@@ -93,20 +143,33 @@ buildout
 effective-user
   The user which will own the buildout files. Defaults to #TODO
 
-remote_path
+path
   The absolute path on the remote host where the buildout will be created.
   Defaults to ~${hostout:effective-user}/buildout
 
-start_cmd
-  A sh command to start up your application. This will be run as root. It is run after every
-  successful running of buildout on the remote host.
-  Defaults to ${buildout:bin-directory}/supervisord
+pre-commands
+  A series of shell commands executed as root before the buildout is run. You can use this 
+  to shut down your application. If this command fails it will be ignored.
+  
+post-commands
+  A series of shell commands executed as root after the buildout is run. You can use this 
+  to startup your application. If this command fails it will be ignored.
 
-stop_cmd
-  A sh command to shutdown your application. This will be run as root. It is run before every
-  buildout on the remote host. If this command fails it will be ignored.
-  Defaults to ${buildout:bin-directory}/supervisorctl shutdown
-
+parts
+  Runs the buildout with a parts value equal to this
+  
+extends 
+  Specifies another part which contains defaults for this hostout
+  
+include
+  Additional configuration files or directories needed to run this buildout
+  
+fabfiles
+  Path to fabric files that contain commands which can then be called from the hostout
+  script. Each method takes a hostout object
+   
+buildout-cache
+  If you want to override the default location for the buildout-cache on the host
 
 Frequently asked questions
 **************************
