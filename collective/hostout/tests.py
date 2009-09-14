@@ -62,13 +62,10 @@ class LocalSSH(ServerInterface, Thread):
         t.start_server(e, server=self)
 
     def get_allowed_auths(self, username):
-        import pdb; pdb.set_trace()
         return "none,password,publickey"
     def check_auth_none(self, username):
-        import pdb; pdb.set_trace()
         return AUTH_SUCCESSFUL
     def check_auth_password(self, username, password):
-        import pdb; pdb.set_trace()
         return AUTH_SUCCESSFUL
     def check_auth_publickey(self, username, key):
         return AUTH_SUCCESSFUL
