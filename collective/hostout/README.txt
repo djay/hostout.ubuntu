@@ -82,7 +82,6 @@ between multiple hostout definitions
     ... user = root
     ... identity-file = id_dsa.pub
     ... pre-commands =
-    ...    apt-get -y install openssl  libssl-dev
     ...    ${buildout:directory}/bin/supervisorctl shutdown || echo 'Unable to shutdown'
     ... post-commands = 
     ...    ${buildout:directory}/bin/supervisord
@@ -96,7 +95,6 @@ between multiple hostout definitions
     ... host = www.prod.com
     ... buildout =
     ...    config/prod.cfg
-    ...    kgs.cfg
     ... path = /var/plone/prod
     ...
     ... [staging]
@@ -105,7 +103,6 @@ between multiple hostout definitions
     ... host = staging.prod.com
     ... buildout =
     ...    config/staging.cfg
-    ...    kgs.cfg
     ... path = /var/plone/staging
     ...
     ... """ % globals())
@@ -177,27 +174,36 @@ Frequently asked questions
 Who should use this?
 ====================
 
-Hostout was primarily created to solve the problem of how to create a hosted
-Plone site for $20 in 20minutes even with no knowledge of linux system
-administration. It is designed to solve the question "Now I've downloaded and installed
-Plone on my windows machine, how do I get a real site?"
-However hostout is useful for:
+Integrators
++++++++++++
+Hostout makes deployment quicker and more reliable by automating the process.
+This makes it especially useful for integrators that need to deploy to many
+different machines.
+Hostout puts your deployment information into your buildout file further centralising
+your configuration. It allows the deployment process to be shared and run by anyone
+in your team.
 
-- anyone who wants a quick solution for setting up a new host for a buildout based application and then repeatedly redeploying to it, including django and other buildout based apps.
+Begginers
++++++++++
 
-- anyone who doesn't want to deal with learning how to setup and administer a linux server
-
-- professionals who use a develop/test/commit/deploy cycle who don't already have their own custom deployment processes
-
+Often those getting started with a framework can handle downloading a development
+version of django or plone and even step through a quick start to start creating 
+their site or application. The next step is to host their site.
+When using buildout and hostout this becomes simple. The learning curve is reduced
+and the server configured in a standard way.
 
 Why not use git/svn/hg/bzr to pull the code onto the server?
 ============================================================
 
-a) it means you have to use SCM to deploy. I wanted a story where someone can download plone/django, customise it a little and then host it in as few steps as possible.
+a) it means you have to use SCM to deploy. I wanted a story where someone can download plone/django, 
+customise it a little and then host it in as few steps as possible.
 
-b) It means you don't have to install the SCM on the host and handle that in a SCM neurtral way... 	I use got, most plone people use svn, I might look at bzr... its a mess.
+b) It means you don't have to install the SCM on the host and handle that in a SCM neurtral way... 	
+I use got, most plone people use svn, I might look at bzr... its a mess.
 
-c) Really you shouldn't be hacking the configuration on your host. Good development means you test things locally, get it working. check it in and then deploy. Hostout is designed to support that model. Everyone one has to have a developement environment to deploy.
+c) Really you shouldn't be hacking the configuration on your host. Good development means you test 
+things locally, get it working. check it in and then deploy. Hostout is designed to support that model. 
+Everyone one has to have a developement environment to deploy.
 
 d) We want to be SCM neutral.
 
@@ -252,8 +258,6 @@ Todo list
 - Handle basic rollback when no SCM exists, for instance when buildout fails.
 
 - Automatically setup host with password-less ssh login.
-
-- Don't upload eggs unless they have changed.
 
 - Help deploy DNS settings, possibly by hosting company specific plugins
 
