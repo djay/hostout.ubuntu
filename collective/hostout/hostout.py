@@ -61,6 +61,7 @@ def get_all_extends(cfgfile):
         return []
 
     config = ConfigParser.ConfigParser()
+    config.optionxform = str
     config.read([cfgfile])
     files = [cfgfile]
     if not 'buildout' in config.sections():
@@ -135,7 +136,7 @@ class HostOut:
 
     def localEggs(self):
         self.getHostoutPackage() #ensure eggs are generated
-        return self.packages.local_eggs
+        return [e for p,v,e in self.packages.local_eggs.values()]
 
     def getParts(self):
         return self.parts
@@ -169,8 +170,6 @@ class HostOut:
 
         files = get_all_extends(config_file)
         files += self.getBuildoutDependencies()
-
-        self.packages.release_eggs()
 
         self.packages.writeVersions(config_file, self.versions_part)
 
@@ -290,6 +289,7 @@ class HostOut:
         base = self.buildout_dir
         path = os.path.join(base,'%s.cfg'%self.name)
         config = ConfigParser.ConfigParser()
+        config.optionxform = str
         config.read([path])
         if 'buildout' not in config.sections():
             config.add_section('buildout')
@@ -347,7 +347,7 @@ class Packages:
         if not os.path.exists(dist_dir):
             os.makedirs(dist_dir)
         self.dist_dir = dist_dir
-        self.local_eggs = []
+        self.local_eggs = {}
 
     def getDistEggs(self):
 
@@ -373,7 +373,7 @@ class Packages:
 
         donepackages = []
         ids = {}
-        self.develop_versions = {}
+        self.local_eggs = {}
         released = {}
         if self.packages:
             print "Hostout: Preparing eggs for transport"
@@ -389,8 +389,7 @@ class Packages:
             else:
                 egg = None
             if egg is not None and hash in dist.version:
-                self.develop_versions[dist.project_name] = dist.version
-                self.local_eggs.append(egg.location)
+                self.local_eggs[dist.project_name] = (dist.project_name, dist.version, egg.location)
             elif os.path.isdir(path):
                 print "Hostout: Develop egg %s changed. Releasing with hash %s" % (path,hash)
                 res = self.setup(args=[path,
@@ -405,23 +404,23 @@ class Packages:
                                       ])
                 dist = [d for d in pkg_resources.find_distributions(path, only=True)]
                 dist = dist[0]
-                self.develop_versions[dist.project_name] = dist.version
+                self.local_eggs[dist.project_name] = (dist.project_name, dist.version, None)
                 released[dist.project_name] = dist.version
             else:
 #                shutil.copy(path,localdist_dir)
-                self.local_eggs.append(path)
+                self.local_eggs[path] = (None, None, path)
         if released:
             eggs = self.getDistEggs()
             for (name,version) in released.items():
                 egg = eggs.get( (name, version) )
                 if egg is not None:
-                    self.local_eggs.append(egg.location)
+                    self.local_eggs[name] = (name, version, egg.location)
                 else:
                     raise "Egg wasn't generated. See errors above"
 
 
         if self.local_eggs:
-            specs = ["\t%s = %s"%p for p in self.develop_versions.items()]
+            specs = ["\t%s = %s"% (p,v) for p,v,e in self.local_eggs.values()]
             print "Hostout: Eggs to transport:\n%s" % '\n'.join(specs)
         return self.local_eggs
 
@@ -434,16 +433,22 @@ class Packages:
 
     def writeVersions(self, versions_file, part):
 
+        self.release_eggs() #ensure we've got self.develop_versions
+
 #        assert len(specs) == len(self.packages)
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser.RawConfigParser()
+        config.optionxform = str
         config.read([versions_file])
         specs = {}
         specs.update(self.versions)
-        specs.update(self.develop_versions)
+        #have to use lower since eggs are case insensitive
+        specs.update(dict([(p,v) for p,v,e in self.local_eggs.values()]))
         config.set('buildout', 'versions', part)
-        if part not in config.sections():
-            config.add_section(part)
-        for name, version in specs.items():
+        if part in config.sections():
+            config.remove_section(part)
+        config.add_section(part)
+
+        for name, version in sorted(specs.items()):
             config.set(part,name,version)
         fp = open(versions_file,'w')
         config.write(fp)
@@ -479,6 +484,7 @@ def main(cfgfile, args):
     "execute the fabfile we generated"
 
     config = ConfigParser.ConfigParser()
+    config.optionxform = str
     config.read([cfgfile])
     files = [cfgfile]
     allhosts = {}

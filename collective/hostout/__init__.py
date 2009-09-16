@@ -124,7 +124,8 @@ class Recipe:
 #                initialization=address_info,
                 )
 
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser.RawConfigParser()
+        config.optionxform = str
         config.read(self.optionsfile)
 
         if not config.has_section(self.name):
@@ -135,10 +136,11 @@ class Recipe:
             config.set(self.name, name, value)
         config.set('buildout','location',self.buildout_dir)
 
-        if not config.has_section('versions'):
-            config.add_section('versions')
         if self.options.get('mainhostout') is not None:
-            for pkg,info in self.getVersions().items():
+            if config.has_section('versions'):
+                config.remove_section('versions')
+            config.add_section('versions')
+            for pkg,info in sorted(self.getVersions().items()):
                     version,deps = info
                     config.set('versions',pkg,version)
             config.set('buildout', 'bin-directory', self.buildout.get('buildout').get('directory'))
@@ -179,14 +181,12 @@ class Recipe:
             egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
             #TODO: need to put in recipe versions too
             requirements, ws = egg.working_set()
-            for dist in ws.by_key.values():
-                project_name =  dist.project_name
-                version = dist.version
-                old_version,dep = versions.get(project_name,('',[]))
+            for dist in ws:
+                old_version,dep = versions.get(dist.project_name,('',[]))
                 if recipe not in dep:
                     dep.append(recipe)
-                if version != '0.0':
-                    versions[project_name] = (version,dep)
+                if dist.version != '0.0':
+                    versions[dist.project_name] = (dist.version,dep)
         spec = ""
         return versions
         for project_name,info in versions.items():

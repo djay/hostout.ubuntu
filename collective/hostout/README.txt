@@ -1,7 +1,22 @@
  
 
 Often we have a buildout installed and working on a development machine and we need to get it working on
-one or many hosts quickly and easily. First we add the collective.hostout part to our development buildout
+one or many hosts quickly and easily. 
+
+First you will need a host. You'll need a linux with ssh access and sudo access. VPS and cloud hosting is
+now cheap and plentiful with options as low as $11USD a month. If you're not sure, pick a pay per hour 
+option preconfigured with unbuntu and give it a go.
+
+Next you need a production buildout for your application. There are plenty available whether it be for Plone, 
+grok, django, BFG, pylons. Often a buildout will come in serveral files, one for development and one for production. 
+Just remember that to get the best performance you will need to understand your buildout.
+
+Once you've followed instructions and got your development buildout running on your development machine you're ready.
+
+My buildout works, now how do I host it?
+****************************************
+
+First we add the collective.hostout part to our development buildout
 
 
     >>> write('buildout.cfg',
@@ -116,6 +131,8 @@ between multiple hostout definitions
     Invalid hostout hostouts are: prod staging
 
 
+
+
 Options
 *******
 
@@ -191,6 +208,14 @@ version of django or plone and even step through a quick start to start creating
 their site or application. The next step is to host their site.
 When using buildout and hostout this becomes simple. The learning curve is reduced
 and the server configured in a standard way.
+
+Why not proper versions of eggs?
+================================
+
+You can tag your code with versions and set version numbers and still use hostout.
+Hostout makes this optionial however, giving you the choice. Future versions will 
+integrate with source control to perform prerelease checks. 
+
 
 Why not use git/svn/hg/bzr to pull the code onto the server?
 ============================================================
