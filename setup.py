@@ -27,7 +27,7 @@ setup(
     description = "one click deployment for buildout based applications",
     license = "GPL",
     keywords = "buildout, deploy, deployment, server, plone, django, host, hosting",
-    url='http://www.python.org/pypi/'+name,
+    url='https://svn.plone.org/svn/collective/'+name,
     long_description=(
         read('README.txt')
         + '\n' +

@@ -19,116 +19,116 @@ My buildout works, now how do I host it?
 First we add the collective.hostout part to our development buildout
 
 
-    >>> write('buildout.cfg',
-    ... """
-    ... [buildout]
-    ... parts = example host1
-    ... develop = src/example
-    ...
-    ... [example]
-    ... recipe = zc.recipe.eggs
-    ... egg = example
-    ... 
-    ... [host1]
-    ... recipe = collective.hostout
-    ... host = localhost:10022
-    ... user = root
-    ... password = root
-    ... path = /usr/local/plone/host1
-    ... """ % globals())
+>>> write('buildout.cfg',
+... """
+... [buildout]
+... parts = example host1
+... develop = src/example
+...
+... [example]
+... recipe = zc.recipe.eggs
+... egg = example
+... 
+... [host1]
+... recipe = collective.hostout
+... host = localhost:10022
+... user = root
+... password = root
+... path = /usr/local/plone/host1
+... """ % globals())
 
 If you don't include your password you will be prompted for it later.    
     
- Don't forget to rerun your buildout to install the hostout script in your buildout bin directory
+Don't forget to rerun your buildout to install the hostout script in your buildout bin directory
 
-    >>> print system('bin/buildout -N')
-    Installing example.
-    Installing host1.
-    Generated script '/sample-buildout/bin/hostout'.
+>>> print system('bin/buildout -N')
+Installing example.
+Installing host1.
+Generated script '/sample-buildout/bin/hostout'.
 
 The generated script is run with a command and host(s) as arguments
 
-    >>> print system('bin/hostout deploy')
-	Please specify a command: Commands are: deploy
-	
-    >>> print system('bin/hostout deploy')
-    Invalid hostout: Hostouts are: host1 all
+>>> print system('bin/hostout')
+Please specify a command: Commands are: deploy
+
+>>> print system('bin/hostout deploy')
+Invalid hostout: Hostouts are: host1 all
 
 The deploy command will login to your host and setup a buildout environment if it doesn't exist, upload
 and installs the buildout.
 
-    >>> print system('bin/hostout deploy host1')
-    Logging into the following hosts as root:
-        localhost
-    Password for root@localhost: 
-    ...
-	Hostout: Preparing eggs for transport
-	Hostout: Develop egg .../example changed. Releasing with hash ...
-	...
-	creating '.../example-1.0dev_...-py2.4.egg' and adding 'build/bdist.../egg' to it
-	removing 'build/bdist.../egg' (and everything under it)
-	Hostout: Eggs to transport:
-		example = 10dev-...
-    ...
-    Hostout: Wrote versions to /.../host1.cfg
-    ...
-    [localhost] put: /.../dist/deploy_....tgz -> /tmp/deploy_....tgz
-    ...
-    [localhost] sudo: sudo -u plone sh -c "export HOME=~plone && cd /var/plone && bin/buildout -c buildout.cfg"
-    ...
-    [localhost] out: Installing example.
-    [localhost] out: Getting distribution for 'example'.
-    [localhost] out: Got example 1.0dev-....
-    [localhost] out: Installing host1.
-    ...
+>>> print system('bin/hostout deploy host1')
+Logging into the following hosts as root:
+    localhost
+Password for root@localhost: 
+...
+Hostout: Preparing eggs for transport
+Hostout: Develop egg .../example changed. Releasing with hash ...
+...
+creating '.../example-1.0dev_...-py2.4.egg' and adding 'build/bdist.../egg' to it
+removing 'build/bdist.../egg' (and everything under it)
+Hostout: Eggs to transport:
+	example = 10dev-...
+...
+Hostout: Wrote versions to /.../host1.cfg
+...
+[localhost] put: /.../dist/deploy_....tgz -> /tmp/deploy_....tgz
+...
+[localhost] sudo: sudo -u plone sh -c "export HOME=~plone && cd /var/plone && bin/buildout -c buildout.cfg"
+...
+[localhost] out: Installing example.
+[localhost] out: Getting distribution for 'example'.
+[localhost] out: Got example 1.0dev-....
+[localhost] out: Installing host1.
+...
 
 We now have a live version of our buildout deployed to our host
 
 For more complicated arrangements you can use the extends value to share defaults 
 between multiple hostout definitions
 
-    >>> write('buildout.cfg',
-    ... """
-    ... [buildout]
-    ... parts = prod staging
-    ...
-    ... [hostout]
-    ... password = blah
-    ... user = root
-    ... identity-file = id_dsa.pub
-    ... pre-commands =
-    ...    ${buildout:directory}/bin/supervisorctl shutdown || echo 'Unable to shutdown'
-    ... post-commands = 
-    ...    ${buildout:directory}/bin/supervisord
-    ... effective-user = plone
-    ... include = config/haproxy.in
-    ...  
-    ... 
-    ... [prod]
-    ... recipe = collective.hostout
-    ... extends = hostout
-    ... host = www.prod.com
-    ... buildout =
-    ...    config/prod.cfg
-    ... path = /var/plone/prod
-    ...
-    ... [staging]
-    ... recipe = collective.hostout
-    ... extends = hostout
-    ... host = staging.prod.com
-    ... buildout =
-    ...    config/staging.cfg
-    ... path = /var/plone/staging
-    ...
-    ... """ % globals())
+>>> write('buildout.cfg',
+... """
+... [buildout]
+... parts = prod staging
+...
+... [hostout]
+... password = blah
+... user = root
+... identity-file = id_dsa.pub
+... pre-commands =
+...    ${buildout:directory}/bin/supervisorctl shutdown || echo 'Unable to shutdown'
+... post-commands = 
+...    ${buildout:directory}/bin/supervisord
+... effective-user = plone
+... include = config/haproxy.in
+...  
+... 
+... [prod]
+... recipe = collective.hostout
+... extends = hostout
+... host = www.prod.com
+... buildout =
+...    config/prod.cfg
+... path = /var/plone/prod
+...
+... [staging]
+... recipe = collective.hostout
+... extends = hostout
+... host = staging.prod.com
+... buildout =
+...    config/staging.cfg
+... path = /var/plone/staging
+...
+... """ % globals())
 
-    >>> print system('bin/buildout -N')
-    Installing prod.
-    Installing staging.
-    Generated script '/sample-buildout/bin/hostout'.
+>>> print system('bin/buildout -N')
+Installing prod.
+Installing staging.
+Generated script '/sample-buildout/bin/hostout'.
 
-    >>> print system('bin/hostout deploy')
-    Invalid hostout hostouts are: prod staging
+>>> print system('bin/hostout deploy')
+Invalid hostout hostouts are: prod staging
 
 
 
@@ -200,7 +200,7 @@ Hostout puts your deployment information into your buildout file further central
 your configuration. It allows the deployment process to be shared and run by anyone
 in your team.
 
-Begginers
+Beginners 
 +++++++++
 
 Often those getting started with a framework can handle downloading a development
@@ -221,14 +221,14 @@ Why not use git/svn/hg/bzr to pull the code onto the server?
 ============================================================
 
 a) it means you have to use SCM to deploy. I wanted a story where someone can download plone/django, 
-customise it a little and then host it in as few steps as possible.
+   customise it a little and then host it in as few steps as possible.
 
 b) It means you don't have to install the SCM on the host and handle that in a SCM neurtral way... 	
-I use got, most plone people use svn, I might look at bzr... its a mess.
+   I use got, most plone people use svn, I might look at bzr... its a mess.
 
 c) Really you shouldn't be hacking the configuration on your host. Good development means you test 
-things locally, get it working. check it in and then deploy. Hostout is designed to support that model. 
-Everyone one has to have a developement environment to deploy.
+   things locally, get it working. check it in and then deploy. Hostout is designed to support that model. 
+   Everyone one has to have a developement environment to deploy.
 
 d) We want to be SCM neutral.
 
@@ -268,17 +268,16 @@ for you.
 
 Todo list
 *********
+- extend directly from recipes to better support plugins
 
-- Handle multiple hosts and multiple locations better including simultaneous deployment.
-
-- Database handling including backing up, moving between development, staging and production
+- plugins for database handling including backing up, moving between development, staging and production
   regardless of location.
+  
+- plugins for cloud api's such as Amazon Ec2 or Rackspace Cloud
 
 - Integrate with SCM to implement an optional check to not deploy unless committed.
 
 - Integrate with SCM to tag all parts so deployments can be rolled back.
-
-- Integrate with SCM to use SCM version numbers.
 
 - Handle basic rollback when no SCM exists, for instance when buildout fails.
 

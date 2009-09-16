@@ -1,8 +1,8 @@
 Release History
 ***************
 
-0.9.1 ()
-========
+0.9.1 (2009-09-17)
+==================
 - fix bug in lowering case of package names in versions
 
 
