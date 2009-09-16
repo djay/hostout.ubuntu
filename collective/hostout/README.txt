@@ -5,10 +5,10 @@ one or many hosts quickly and easily.
 
 First you will need a host. You'll need a linux with ssh access and sudo access. VPS and cloud hosting is
 now cheap and plentiful with options as low as $11USD a month. If you're not sure, pick a pay per hour 
-option preconfigured with unbuntu and give it a go.
+option pre-configured with Ubuntu and give it a go.
 
 Next you need a production buildout for your application. There are plenty available whether it be for Plone, 
-grok, django, BFG, pylons. Often a buildout will come in serveral files, one for development and one for production. 
+grok, django, BFG, pylons. Often a buildout will come in several files, one for development and one for production. 
 Just remember that to get the best performance you will need to understand your buildout.
 
 Once you've followed instructions and got your development buildout running on your development machine you're ready.
