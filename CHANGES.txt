@@ -1,6 +1,13 @@
 Release History
 ***************
 
+0.9.2 (2009-09-26)
+==================
+- can extend from recipe directly instead of a buildout part
+- supervisor plugin recipe
+- fixed version pinning for recipes
+
+
 0.9.1 (2009-09-17)
 ==================
 - fix bug in lowering case of package names in versions

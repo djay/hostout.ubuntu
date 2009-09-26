@@ -23,17 +23,15 @@ from os.path import join
 import os
 from os.path import dirname, abspath
 import ConfigParser
-
-
-def system(c):
-    if os.system(c):
-        raise SystemError("Failed", c)
+from zc.buildout.buildout import Options, _recipe, _install_and_load
+import pkg_resources
 
 
 
 class Recipe:
 
     def __init__(self, buildout, name, options):
+
         self.egg = zc.recipe.egg.Egg(buildout, options['recipe'], options)
         self.name, self.options, self.buildout = name, options, buildout
 
@@ -59,17 +57,35 @@ class Recipe:
         self.optionsfile = join(self.options['location'],'hostout.cfg')
         self.fabfiles = []
 
+        self.subrecipes = []
         extends = [e.strip() for e in self.options.get('extends','').split() if e.strip()]
 
         for extension in reversed(extends):
-            extension = buildout.get(extension)
-            if extension is None:
+            part = buildout.get(extension)
+            if part is None:
+                # try interpreting extends as recipe
+                eopts = {}
+#                eopts.update(options)
+                eopts['recipe'] = extension
+                #buildout._raw[extension] = eopts #dodgy hack since buildout.__setitem__ not implemented
+                #part = buildout.get(extension)
+                #part = Options(buildout, name, eopts)
+                #part._initialize()
+                reqs, entry = _recipe(eopts)
+                recipe_class = _install_and_load(reqs, 'zc.buildout', entry, buildout)
+                recipe = recipe_class(buildout, name, options)
+                self.subrecipes.append(recipe)
                 continue
-            for key in extension:
+
+#                if part is None:
+#                    raise "No part or recipe named '%s'"%extension
+
+
+            for key in part:
                 if key == 'fabfile':
-                    self.fabfiles.append(extension[key])
+                    self.fabfiles.append(part[key])
                 if key not in self.options:
-                    self.options[key] = extension[key]
+                    self.options[key] = part[key]
 
 
         self.options.setdefault('dist_dir','dist')
@@ -92,6 +108,15 @@ class Recipe:
 
 
     def install(self):
+
+        for recipe in self.subrecipes:
+            installed = recipe.install()
+            if installed is None:
+                installed = []
+            elif isinstance(installed, basestring):
+                installed = [installed]
+
+
         logger = logging.getLogger(self.name)
 
         location = self.options['location']
@@ -108,9 +133,16 @@ class Recipe:
         fp.close()
         self.update()
 
-        return self.optionsfile
+        return installed + [self.optionsfile]
 
     def update(self):
+        for recipe in self.subrecipes:
+            installed = recipe.install()
+            if installed is None:
+                installed = []
+            elif isinstance(installed, basestring):
+                installed = [installed]
+
 
         if self.options.get('mainhostout') is not None:
             requirements, ws = self.egg.working_set()
@@ -157,7 +189,7 @@ class Recipe:
         fp = open(self.optionsfile, 'w+')
         config.write(fp)
         fp.close()
-        return self.optionsfile
+        return installed+ [self.optionsfile]
 
 
 
@@ -179,9 +211,12 @@ class Recipe:
         versions = {}
         for part, recipe, options in self.getAllRecipes():
             egg = zc.recipe.egg.Egg(self.buildout, recipe, options)
-            #TODO: need to put in recipe versions too
+            spec, entry = _recipe({'recipe':recipe})
+            req = pkg_resources.Requirement.parse(spec)
+            dist = pkg_resources.working_set.find(req)
+
             requirements, ws = egg.working_set()
-            for dist in ws:
+            for dist in [dist] + [d for d in ws]:
                 old_version,dep = versions.get(dist.project_name,('',[]))
                 if recipe not in dep:
                     dep.append(recipe)
