@@ -130,7 +130,31 @@ Generated script '/sample-buildout/bin/hostout'.
 >>> print system('bin/hostout deploy')
 Invalid hostout hostouts are: prod staging
 
+Plugins
+*******
+There are two ways to extend hostout. 
 
+fabfile
+  You can give a fabfile argument. This is a fabric file which contains commands which will then 
+  be available as commands on the hostout command line.
+  
+ recipes
+  You can create a buildout recipe which sets values which hostout can use. For instance you can 
+  create a recipe that sets options for pre-commands, post-commands or fabfile values. Such a 
+  recipe can be directly in teh extends value or by creating a part referenced in the extends
+  value.
+  
+collective.hostout:supervisor
+*****************************
+This recipe is an example of a hostout plugin. It will set pre and post commands to stop and then 
+restart supervisor after the deployment. It takes the following options
+
+supervisor
+  The name of the supervisor part to stop and restart
+  
+init.d
+  If set the supervisord script will be linked into init.d so any machine restart will also
+  start supervisor
 
 
 Options

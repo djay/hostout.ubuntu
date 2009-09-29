@@ -32,38 +32,39 @@ def predeploy(hostout):
         unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
         )
 
-    sudo('mkdir -p $(dist_dir)/dist && sudo chown -R $(effectiveuser) $(dist_dir)')
-    sudo('mkdir -p %(dc)s && sudo chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
+    sudo('mkdir -p $(dist_dir)/dist '+
+         '&& sudo chmod -R a+rw  $(dist_dir)'
+         '')
+    sudo(('mkdir -p %(dc)s '+
+         '&& sudo chmod -R a+rw  %(dc)s'
+         '') % dict(dc=hostout.getEggCache()))
+
+    #install prerequsites
+    sudo('which g++ || (sudo apt-get -ym update && sudo apt-get install -ym build-essential libssl-dev libreadline5-dev) || echo "not ubuntu"')
 
     #Download the unified installer if we don't have it
-    sudo('test -f $(buildout_dir)/bin/buildout || \
-         test -f $(dist_dir)/$(unified).tgz || \
-         ( cd /tmp && \
-         wget  --continue $(unified_url) && \
-         sudo mv /tmp/$(unified).tgz $(dist_dir)/$(unified).tgz && \
-         sudo chown $(effectiveuser) $(dist_dir)/$(unified).tgz \
-         ) \
-         ')
+    sudo('test -f $(buildout_dir)/bin/buildout || '+
+         'test -f $(dist_dir)/$(unified).tgz || '+
+         '( cd /tmp && '+
+         'wget  --continue $(unified_url) '+
+         '&& sudo mv /tmp/$(unified).tgz $(dist_dir)/$(unified).tgz '+
+#         '&& sudo chown $(effectiveuser) $(dist_dir)/$(unified).tgz '+
+        ')'
+         )
     # untar and run unified installer
-    sudo('test -f $(buildout_dir)/bin/buildout || \
-          (cd /tmp && \
-          tar -xvf $(dist_dir)/$(unified).tgz && \
-          test -d /tmp/$(unified) && \
-          cd /tmp/$(unified) && \
-          sudo mkdir -p  $(install_dir) && \
-          sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && \
-          sudo chown -R $(effectiveuser) $(install_dir)/$(instance))')
+    sudo('test -f $(buildout_dir)/bin/buildout || '+
+          '(cd /tmp && '+
+          'tar -xvf $(dist_dir)/$(unified).tgz && '+
+          'test -d /tmp/$(unified) && '+
+          'cd /tmp/$(unified) && '+
+          'sudo mkdir -p  $(install_dir) && '+
+          'sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && '+
+          'sudo chown -R $(effectiveuser) $(install_dir)/$(instance))'
+          )
 
     for cmd in hostout.getPreCommands():
         sudo('sh -c "%s"'%cmd)
 
-
-#TODO Need to hook into init.d
-#http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
-#cd /etc/init.d/
-#ln -s INSTANCE_HOME/bin/supervisord project-supervisord
-#ln -s INSTANCE_HOME/bin/supervisorctl project-supervisorctl
-#update-rc.d project-supervisord defaults
 
 
 def dodeploy(hostout):
@@ -99,6 +100,7 @@ def dodeploy(hostout):
         hostout_file=hostout.getHostoutFile(),
     )
 
+   # sudo('ls -al versions')
     #need a way to make sure ownership of files is ok
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf %s --directory=$(install_dir)' % tgt)
 #    if hostout.getParts():
