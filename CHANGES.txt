@@ -1,6 +1,14 @@
 Release History
 ***************
 
+0.9.3
+==================
+- Fixed how extends works
+- fabric commands have hostout in environment rather than argument
+- new command to reset permissions
+- fab_hosts etc is set for all commands
+- supervisor recipe now uses fabfile
+
 0.9.2 (2009-09-26)
 ==================
 - can extend from recipe directly instead of a buildout part

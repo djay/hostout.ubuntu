@@ -20,6 +20,7 @@ import zc.recipe.egg
 from os.path import join
 import os
 from os.path import dirname, abspath
+from pkg_resources import resource_string, resource_filename
 
 
 
@@ -31,6 +32,9 @@ class Recipe:
         supervisor = self.options.get('supervisor','supervisor')
         self.options['supervisor'] = supervisor
         bin = buildout['buildout']['bin-directory']
+
+        self.options['fabfiles'] = fabfile = resource_filename(__name__, 'fabfile.py')
+
 
         self.options['pre-commands'] = "%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor)
         self.options['post-commands'] = "%s/%sd shutdown"% (bin,supervisor)

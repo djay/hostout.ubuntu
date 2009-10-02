@@ -204,7 +204,7 @@ include
   
 fabfiles
   Path to fabric files that contain commands which can then be called from the hostout
-  script. Each method takes a hostout object
+  script. Commands can access hostout options via hostout.options from the fabric environment.
    
 buildout-cache
   If you want to override the default location for the buildout-cache on the host

@@ -46,6 +46,7 @@ class Recipe:
             main['mainhostout'] = self.name
 
 
+
         self.buildout_dir = self.buildout.get('buildout').get('directory')
         self.download_cache = self.buildout['buildout'].get('download-cache')
         self.install_from_cache = self.buildout['buildout'].get('install-from-cache')
@@ -55,37 +56,10 @@ class Recipe:
             'hostout',
             )
         self.optionsfile = join(self.options['location'],'hostout.cfg')
+
         self.fabfiles = []
-
         self.subrecipes = []
-        extends = [e.strip() for e in self.options.get('extends','').split() if e.strip()]
-
-        for extension in reversed(extends):
-            part = buildout.get(extension)
-            if part is None:
-                # try interpreting extends as recipe
-                eopts = {}
-#                eopts.update(options)
-                eopts['recipe'] = extension
-                #buildout._raw[extension] = eopts #dodgy hack since buildout.__setitem__ not implemented
-                #part = buildout.get(extension)
-                #part = Options(buildout, name, eopts)
-                #part._initialize()
-                reqs, entry = _recipe(eopts)
-                recipe_class = _install_and_load(reqs, 'zc.buildout', entry, buildout)
-                recipe = recipe_class(buildout, name, options)
-                self.subrecipes.append(recipe)
-                continue
-
-#                if part is None:
-#                    raise "No part or recipe named '%s'"%extension
-
-
-            for key in part:
-                if key == 'fabfile':
-                    self.fabfiles.append(part[key])
-                if key not in self.options:
-                    self.options[key] = part[key]
+        self.extends(options, [])
 
 
         self.options.setdefault('dist_dir','dist')
@@ -103,11 +77,44 @@ class Recipe:
         self.options.setdefault('path', self.options.get('remote_path','/var/lib/plone/%s'%name))
 #        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
         self.options.setdefault('buildout_location',self.buildout_dir)
-        self.options['fabfiles'] = '\n\t'.join(self.fabfiles)
 
+    def extends(self, options, seen):
+
+        extends = [e.strip() for e in options.get('extends','').split() if e.strip()]
+        for extension in extends:
+            if extension in seen:
+                continue
+            seen.append(extension)
+
+            part = self.buildout.get(extension)
+            if part is None:
+                # try interpreting extends as recipe
+                eopts = {}
+#                eopts.update(options)
+                eopts['recipe'] = extension
+                #buildout._raw[extension] = eopts #dodgy hack since buildout.__setitem__ not implemented
+                #part = buildout.get(extension)
+                #part = Options(buildout, name, eopts)
+                #part._initialize()
+                reqs, entry = _recipe(eopts)
+                recipe_class = _install_and_load(reqs, 'zc.buildout', entry, self.buildout)
+                recipe = recipe_class(self.buildout, self.name, self.options)
+                self.subrecipes.append(recipe)
+                continue
+            else:
+                self.extends(part, seen)
+                for key in part:
+                    if key == 'fabfiles':
+                        fabfiles = part[key].split()
+                        self.options[key] = '\n'.join(self.options.get(key).split()+fabfiles)
+                    else:
+                        self.options[key] = part[key]
+        return seen
 
 
     def install(self):
+
+        installed = []
 
         for recipe in self.subrecipes:
             installed = recipe.install()
@@ -136,6 +143,7 @@ class Recipe:
         return installed + [self.optionsfile]
 
     def update(self):
+        installed = []
         for recipe in self.subrecipes:
             installed = recipe.install()
             if installed is None:

@@ -23,9 +23,28 @@ def createuser(buildout_user='buildout'):
     set(fab_key_filename=keyname)
 
 
-def predeploy(hostout):
+def resetpermissions():
+    hostout = get('hostout')
+    set(
+        dist_dir = hostout.getDownloadCache(),
+        effectiveuser=hostout.effective_user,
+        buildout_dir=hostout.remote_dir,
+        install_dir=os.path.split(hostout.remote_dir)[0],
+        instance=os.path.split(hostout.remote_dir)[1],
+        download_cache=hostout.getDownloadCache()
+    )
+
+
+    sudo('sudo chmod -R a+rw  $(dist_dir)')
+    sudo(('sudo chmod -R a+rw  %(dc)s'
+         '') % dict(dc=hostout.getEggCache()))
+    sudo('sudo chown -R $(effectiveuser) $(install_dir)/$(instance)')
+
+
+def predeploy():
     "install buildout and its dependencies"
     #run('export http_proxy=localhost:8123') # TODO get this from setting
+    hostout = get('hostout')
 
     set(dist_dir = hostout.getDownloadCache(),
         unified='Plone-3.2.1r3-UnifiedInstaller',
@@ -67,8 +86,9 @@ def predeploy(hostout):
 
 
 
-def dodeploy(hostout):
+def dodeploy():
     "deploy the package of changed cfg files"
+    hostout = get('hostout')
 
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
 
@@ -117,15 +137,10 @@ def dodeploy(hostout):
 #    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
 
 
-def deploy(hostout):
+def deploy():
     ""
-    if hostout.password:
-        set(fab_password=hostout.password)
-    if hostout.identityfile:
-        set(fab_key_filename=hostout.identityfile)
+    hostout = get('hostout')
     set(
-        fab_user=hostout.user,
-        fab_hosts=[hostout.host],
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
         install_dir=os.path.split(hostout.remote_dir)[0],
@@ -133,11 +148,13 @@ def deploy(hostout):
         download_cache=hostout.getDownloadCache()
     )
 
-    predeploy(hostout)
-    dodeploy(hostout)
-    postdeploy(hostout)
+    predeploy()
+    dodeploy()
+    postdeploy()
 
-def postdeploy(hostout):
+def postdeploy():
+    hostout = get('hostout')
+
     for cmd in hostout.getPostCommands():
         sudo('sh -c "%s"'%cmd)
 

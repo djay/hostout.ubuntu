@@ -83,6 +83,7 @@ class HostOut:
         self.dist_dir = packages.dist_dir
         self.packages = packages
         self.hostout_package = None
+        self.options = opt
 
         self.name = name
         self.effective_user = opt['effective-user']
@@ -231,7 +232,7 @@ class HostOut:
 
 
 
-    def runfabric(self, command):
+    def runfabric(self, command=None):
         "return all commands if none found to run"
 
         cmds = {}
@@ -239,15 +240,23 @@ class HostOut:
 
         try:
             try:
-
-                for fabfile in reversed(self.fabfiles):
-
-                    fabric._load_default_settings()
+                fabric._load_default_settings()
+                for fabfile in self.fabfiles:
                     fabric.load(fabfile, fail='warn')
                     cmds.update(fabric.COMMANDS)
                     cmd = fabric.COMMANDS.get(command, None)
+                    fabric.set(hostout=self)
+                    if self.password:
+                        fabric.set(fab_password=self.password)
+                    if self.identityfile:
+                        fabric.set(fab_key_filename=self.identityfile)
+                    fabric.set(
+                               fab_user=self.user,
+                               fab_hosts=[self.host],
+                               )
+
                     if cmd is not None:
-                        cmd(self)
+                        cmd()
                 if cmd is None:
                     return cmds.keys()
 
@@ -510,9 +519,14 @@ def main(cfgfile, args):
                 res = hostout.runfabric(cmd)
                 if res:
                     print >> sys.stderr, "Invalid command. Valid commands are - %s"%res
-
     else:
-        print >> sys.stderr, "Please specify a command"
+            cmd = {}
+            torun = allhosts.values()
+            for hostout in torun:
+                hostout.readsshconfig()
+                for c in hostout.runfabric():
+                    cmd.setdefault(c, 1)
+            print >> sys.stderr, "valid commands are - %s"%cmd.keys()
 
 
 
