@@ -106,7 +106,7 @@ class HostOut:
         from pkg_resources import resource_string, resource_filename
         fabfile = resource_filename(__name__, 'fabfile.py')
 
-        self.fabfiles = [p.strip() for p in opt['fabfiles'].split() if p.strip()] + [fabfile]
+        self.fabfiles = [p.strip() for p in opt.get('fabfiles','').split() if p.strip()] + [fabfile]
 
         #self.packages = opt['packages']
         #dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
