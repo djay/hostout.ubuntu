@@ -23,51 +23,72 @@ def createuser(buildout_user='buildout'):
     set(fab_key_filename=keyname)
 
 
-def predeploy(hostout):
+def resetpermissions():
+    hostout = get('hostout')
+    set(
+        dist_dir = hostout.getDownloadCache(),
+        effectiveuser=hostout.effective_user,
+        buildout_dir=hostout.remote_dir,
+        install_dir=os.path.split(hostout.remote_dir)[0],
+        instance=os.path.split(hostout.remote_dir)[1],
+        download_cache=hostout.getDownloadCache()
+    )
+
+
+    sudo('sudo chmod -R a+rw  $(dist_dir)')
+    sudo(('sudo chmod -R a+rw  %(dc)s'
+         '') % dict(dc=hostout.getEggCache()))
+    sudo('sudo chown -R $(effectiveuser) $(install_dir)/$(instance)')
+
+
+def predeploy():
     "install buildout and its dependencies"
     #run('export http_proxy=localhost:8123') # TODO get this from setting
+    hostout = get('hostout')
 
     set(dist_dir = hostout.getDownloadCache(),
         unified='Plone-3.2.1r3-UnifiedInstaller',
         unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
         )
 
-    sudo('mkdir -p $(dist_dir)/dist && sudo chown -R $(effectiveuser) $(dist_dir)')
-    sudo('mkdir -p %(dc)s && sudo chown $(effectiveuser) %(dc)s'% dict(dc=hostout.getEggCache()))
+    sudo('mkdir -p $(dist_dir)/dist '+
+         '&& sudo chmod -R a+rw  $(dist_dir)'
+         '')
+    sudo(('mkdir -p %(dc)s '+
+         '&& sudo chmod -R a+rw  %(dc)s'
+         '') % dict(dc=hostout.getEggCache()))
+
+    #install prerequsites
+    sudo('which g++ || (sudo apt-get -ym update && sudo apt-get install -ym build-essential libssl-dev libreadline5-dev) || echo "not ubuntu"')
 
     #Download the unified installer if we don't have it
-    sudo('test -f $(buildout_dir)/bin/buildout || \
-         test -f $(dist_dir)/$(unified).tgz || \
-         ( cd /tmp && \
-         wget  --continue $(unified_url) && \
-         sudo mv /tmp/$(unified).tgz $(dist_dir)/$(unified).tgz && \
-         sudo chown $(effectiveuser) $(dist_dir)/$(unified).tgz \
-         ) \
-         ')
+    sudo('test -f $(buildout_dir)/bin/buildout || '+
+         'test -f $(dist_dir)/$(unified).tgz || '+
+         '( cd /tmp && '+
+         'wget  --continue $(unified_url) '+
+         '&& sudo mv /tmp/$(unified).tgz $(dist_dir)/$(unified).tgz '+
+#         '&& sudo chown $(effectiveuser) $(dist_dir)/$(unified).tgz '+
+        ')'
+         )
     # untar and run unified installer
-    sudo('test -f $(buildout_dir)/bin/buildout || \
-          (cd /tmp && \
-          tar -xvf $(dist_dir)/$(unified).tgz && \
-          test -d /tmp/$(unified) && \
-          cd /tmp/$(unified) && \
-          sudo mkdir -p  $(install_dir) && \
-          sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && \
-          sudo chown -R $(effectiveuser) $(install_dir)/$(instance))')
+    sudo('test -f $(buildout_dir)/bin/buildout || '+
+          '(cd /tmp && '+
+          'tar -xvf $(dist_dir)/$(unified).tgz && '+
+          'test -d /tmp/$(unified) && '+
+          'cd /tmp/$(unified) && '+
+          'sudo mkdir -p  $(install_dir) && '+
+          'sudo ./install.sh --target=$(install_dir) --instance=$(instance) --user=$(effectiveuser) --nobuildout standalone && '+
+          'sudo chown -R $(effectiveuser) $(install_dir)/$(instance))'
+          )
 
     for cmd in hostout.getPreCommands():
         sudo('sh -c "%s"'%cmd)
 
 
-#TODO Need to hook into init.d
-#http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
-#cd /etc/init.d/
-#ln -s INSTANCE_HOME/bin/supervisord project-supervisord
-#ln -s INSTANCE_HOME/bin/supervisorctl project-supervisorctl
-#update-rc.d project-supervisord defaults
 
-
-def dodeploy(hostout):
+def dodeploy():
     "deploy the package of changed cfg files"
+    hostout = get('hostout')
 
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
 
@@ -99,6 +120,7 @@ def dodeploy(hostout):
         hostout_file=hostout.getHostoutFile(),
     )
 
+   # sudo('ls -al versions')
     #need a way to make sure ownership of files is ok
     sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf %s --directory=$(install_dir)' % tgt)
 #    if hostout.getParts():
@@ -115,15 +137,10 @@ def dodeploy(hostout):
 #    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
 
 
-def deploy(hostout):
+def deploy():
     ""
-    if hostout.password:
-        set(fab_password=hostout.password)
-    if hostout.identityfile:
-        set(fab_key_filename=hostout.identityfile)
+    hostout = get('hostout')
     set(
-        fab_user=hostout.user,
-        fab_hosts=[hostout.host],
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
         install_dir=os.path.split(hostout.remote_dir)[0],
@@ -131,11 +148,13 @@ def deploy(hostout):
         download_cache=hostout.getDownloadCache()
     )
 
-    predeploy(hostout)
-    dodeploy(hostout)
-    postdeploy(hostout)
+    predeploy()
+    dodeploy()
+    postdeploy()
 
-def postdeploy(hostout):
+def postdeploy():
+    hostout = get('hostout')
+
     for cmd in hostout.getPostCommands():
         sudo('sh -c "%s"'%cmd)
 

@@ -21,13 +21,13 @@ def read(*rnames):
 name = "collective.hostout"
 setup(
     name = name,
-    version = "0.2",
+    version = "0.9.3",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = "one click deployment for buildout based applications",
     license = "GPL",
     keywords = "buildout, deploy, deployment, server, plone, django, host, hosting",
-    url='http://www.python.org/pypi/'+name,
+    url='https://svn.plone.org/svn/collective/'+name,
     long_description=(
         read('README.txt')
         + '\n' +
@@ -52,6 +52,7 @@ setup(
                         'functools' ,#needed for fabric to make it 2.4 compatible
                         ],
     entry_points = {'zc.buildout':
-                    ['default = collective.hostout:Recipe']},
+                    ['default = collective.hostout:Recipe',
+                    "supervisor = collective.hostout.supervisor:Recipe"]},
     zip_safe = False,
     )
