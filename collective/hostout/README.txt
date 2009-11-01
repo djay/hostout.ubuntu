@@ -93,6 +93,7 @@ between multiple hostout definitions
 ... parts = prod staging
 ...
 ... [hostout]
+... recipe = collective.hostout
 ... password = blah
 ... user = root
 ... identity-file = id_dsa.pub
@@ -129,33 +130,6 @@ Generated script '/sample-buildout/bin/hostout'.
 
 >>> print system('bin/hostout deploy')
 Invalid hostout hostouts are: prod staging
-
-Plugins
-*******
-There are two ways to extend hostout. 
-
-fabfile
-  You can give a fabfile argument. This is a fabric file which contains commands which will then 
-  be available as commands on the hostout command line.
-  
- recipes
-  You can create a buildout recipe which sets values which hostout can use. For instance you can 
-  create a recipe that sets options for pre-commands, post-commands or fabfile values. Such a 
-  recipe can be directly in teh extends value or by creating a part referenced in the extends
-  value.
-  
-collective.hostout:supervisor
-*****************************
-This recipe is an example of a hostout plugin. It will set pre and post commands to stop and then 
-restart supervisor after the deployment. It takes the following options
-
-supervisor
-  The name of the supervisor part to stop and restart
-  
-init.d
-  If set the supervisord script will be linked into init.d so any machine restart will also
-  start supervisor
-
 
 Options
 *******
@@ -209,8 +183,67 @@ fabfiles
 buildout-cache
   If you want to override the default location for the buildout-cache on the host
 
-Frequently asked questions
-**************************
+
+Plugins
+*******
+There are two ways to extend hostout. 
+
+fabfiles
+  You can give a fabfiles argument. This is a fabric file which contains commands which will then 
+  be available as commands on the hostout command line.
+  
+recipes
+  You can create a buildout recipe which sets values which hostout can use. For instance you can 
+  create a recipe that sets options for pre-commands, post-commands or fabfile values. Such a 
+  recipe can be directly in teh extends value or by creating a part referenced in the extends
+  value.
+  
+collective.hostout:supervisor
+*****************************
+This recipe is an example of a hostout plugin. It will set pre and post commands to stop and then 
+restart supervisor after the deployment. It takes the following options
+
+supervisor
+  The name of the supervisor part to stop and restart
+  
+init.d
+  If set the supervisord script will be linked into init.d so any machine restart will also
+  start supervisor
+
+>>> write('buildout.cfg',
+... """
+... [buildout]
+... parts = supervisor host1
+...
+... [supervisor]
+... recipe = collective.recipe.supervisor
+... programs=
+...    10 startsomething ${buildout:directory}/startsomething
+...
+... [host1]
+... recipe = collective.hostout
+... host = www.prod.com
+... extends = collective.hostout:supervisor
+... supervisor = supervisor
+... init.d = True
+...
+... """ % globals())
+
+
+
+collective.hostout:ubuntu
+*************************
+if you include this extension native ubuntu packages will be used on your remote host instead 
+of the more generic plone unified installer.
+
+**Warning: this will change your system packages as needed to get the correct python version**
+
+
+
+
+
+Q & A
+*****
 
 Who should use this?
 ====================
