@@ -247,6 +247,7 @@ class HostOut:
 
         cmds = {}
         cmd = None
+        res = True
 
         try:
             try:
@@ -266,9 +267,13 @@ class HostOut:
                                )
 
                     if cmd is not None:
-                        cmd()
+                        res = cmd()
+                        if res not in [None,True]:
+                            print >> sys.stderr, "Hostout aborted"
+                            res = False
+                            break
                 if cmd is None:
-                    return cmds.keys()
+                    print >> sys.stderr, "Invalid command. Valid commands are - %s" % cmds.keys()
 
             finally:
                 fabric._disconnect()
@@ -282,6 +287,7 @@ class HostOut:
         #        sys.excepthook(*sys.exc_info())
         #        # we might leave stale threads if we don't explicitly exit()
         #        return False
+        return res
 
 #    def genhostout(self):
 #        """ generate a new buildout file which pins versions and uses our deployment distributions"""
@@ -532,9 +538,9 @@ def main(cfgfile, args):
             for hostout in torun:
                 hostout.readsshconfig()
                 for cmd in cmds:
-                    res = hostout.runfabric(cmd)
-                    if res:
-                        print >> sys.stderr, "Invalid command. Valid commands are - %s"%res
+                    if not hostout.runfabric(cmd):
+                        break
+
     else:
             cmd = {}
             torun = allhosts.values()

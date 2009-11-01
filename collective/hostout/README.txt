@@ -282,6 +282,9 @@ of a zope or plone installation.
 ... recipe = collective.hostout
 ... host = www.prod.com
 ... extends = collective.hostout:datafs
+... filestorage = 
+...    ${buildout:directory}/var/filestorage/Data01.fs
+...    ${buildout:directory}/var/filestorage/Data02.fs
 ... 
 ...
 ... """ % globals())
