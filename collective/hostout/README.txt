@@ -238,6 +238,66 @@ of the more generic plone unified installer.
 
 **Warning: this will change your system packages as needed to get the correct python version**
 
+collective.hostout:mrdeveloper
+******************************
+if you include this extension your hostout deployment will fail if you have any uncommited modifications
+
+>>> write('buildout.cfg',
+... """
+... [buildout]
+... parts = host1
+...
+... [host1]
+... recipe = collective.hostout
+... host = www.prod.com
+... extends = collective.hostout:mrdeveloper
+...
+... """ % globals())
+
+>>> print system('bin/buildout -N')
+...
+
+>>> print system('bin/hostout deploy host1')
+Package 'example1' has been modified. Do you want to deploy anyway [y/N]?
+
+collective.hostout.datafs
+*************************
+Adding this extension will provide addition commands for manipulating the ZODB database files
+of a zope or plone installation.
+
+>>> write('buildout.cfg',
+... """
+... [buildout]
+... parts = host1
+...
+... [host1]
+... recipe = collective.hostout
+... host = www.prod.com
+... extends = collective.hostout:datafs
+... 
+...
+... """ % globals())
+
+>>> print system('bin/buildout -N')
+...
+
+>>> print system('bin/hostout upload host1')
+This will overwrite the following filestorage files on your host.
+- var/filestorage/Data.fs
+Are you sure you want to do this [y/N]?
+
+>>> print system('bin/hostout download host1')
+This will overwrite the following filestorage files on your local buildout directory.
+- var/filestorage/Data.fs
+Are you sure you want to do this [y/N]?
+
+>>> print system('bin/hostout backup host1')
+Running repozo to create backup on remote server 'host1'
+...
+
+
+
+
 
 
 
