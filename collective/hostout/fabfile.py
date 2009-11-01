@@ -45,6 +45,13 @@ def predeploy():
     "install buildout and its dependencies"
     #run('export http_proxy=localhost:8123') # TODO get this from setting
     hostout = get('hostout')
+    set(
+        effectiveuser=hostout.effective_user,
+        buildout_dir=hostout.remote_dir,
+        install_dir=os.path.split(hostout.remote_dir)[0],
+        instance=os.path.split(hostout.remote_dir)[1],
+        download_cache=hostout.getDownloadCache()
+    )
 
     set(dist_dir = hostout.getDownloadCache(),
         unified='Plone-3.2.1r3-UnifiedInstaller',
@@ -86,9 +93,16 @@ def predeploy():
 
 
 
-def dodeploy():
+def deploy():
     "deploy the package of changed cfg files"
     hostout = get('hostout')
+    set(
+        effectiveuser=hostout.effective_user,
+        buildout_dir=hostout.remote_dir,
+        install_dir=os.path.split(hostout.remote_dir)[0],
+        instance=os.path.split(hostout.remote_dir)[1],
+        download_cache=hostout.getDownloadCache()
+    )
 
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
 
@@ -137,8 +151,8 @@ def dodeploy():
 #    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
 
 
-def deploy():
-    ""
+
+def postdeploy():
     hostout = get('hostout')
     set(
         effectiveuser=hostout.effective_user,
@@ -147,13 +161,6 @@ def deploy():
         instance=os.path.split(hostout.remote_dir)[1],
         download_cache=hostout.getDownloadCache()
     )
-
-    predeploy()
-    dodeploy()
-    postdeploy()
-
-def postdeploy():
-    hostout = get('hostout')
 
     for cmd in hostout.getPostCommands():
         sudo('sh -c "%s"'%cmd)

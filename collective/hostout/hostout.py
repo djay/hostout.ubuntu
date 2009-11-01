@@ -135,6 +135,16 @@ class HostOut:
     def getRemoteBuildoutPath(self):
         return self.remote_dir
 
+    def splitPath(self):
+        """return the two parts of the path needed by unified installer, the base install path
+        and the instance sub directory of the install path. It does this by assuming the last
+        part of the path is the instance sub directory"""
+
+        install_dir=os.path.split(self.remote_dir)[0]
+        instance=os.path.split(self.remote_dir)[1]
+        return (install_Dir, instance)
+
+
     def localEggs(self):
         self.getHostoutPackage() #ensure eggs are generated
         return [e for p,v,e in self.packages.local_eggs.values()]
@@ -507,6 +517,11 @@ def main(cfgfile, args):
         allhosts[section] = hostout
     if args:
         cmd, hosts = args[0],args[1:]
+        if cmd == 'deploy':
+            cmds = ['predeploy','deploy','postdeploy']
+        else:
+            cmds = [cmd]
+
         if 'all' in hosts:
             torun = allhosts.values()
         else:
@@ -516,9 +531,10 @@ def main(cfgfile, args):
         elif cmd:
             for hostout in torun:
                 hostout.readsshconfig()
-                res = hostout.runfabric(cmd)
-                if res:
-                    print >> sys.stderr, "Invalid command. Valid commands are - %s"%res
+                for cmd in cmds:
+                    res = hostout.runfabric(cmd)
+                    if res:
+                        print >> sys.stderr, "Invalid command. Valid commands are - %s"%res
     else:
             cmd = {}
             torun = allhosts.values()

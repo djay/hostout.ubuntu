@@ -179,6 +179,14 @@ include
 fabfiles
   Path to fabric files that contain commands which can then be called from the hostout
   script. Commands can access hostout options via hostout.options from the fabric environment.
+
+pre-fabric
+  A list of fabric commands that will be run before deployment. The fabric commands will need to 
+  be available in at least one fabric file listed in fabfiltes.
+  
+post-fabric
+  A list of fabric commands that will be run after deployment. The fabric commands will need to 
+  be available in at least one fabric file listed in fabfiltes.
    
 buildout-cache
   If you want to override the default location for the buildout-cache on the host
