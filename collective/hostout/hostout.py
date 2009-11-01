@@ -272,6 +272,8 @@ class HostOut:
                             print >> sys.stderr, "Hostout aborted"
                             res = False
                             break
+                        else:
+                            res = True
                 if cmd is None:
                     print >> sys.stderr, "Invalid command. Valid commands are - %s" % cmds.keys()
 
@@ -407,8 +409,9 @@ class Packages:
             # use buildout to run setup for us
             hash = _dir_hash([path])
             ids[hash]=path
-            dist = [d for d in pkg_resources.find_distributions(path, only=True)]
-            if dist:
+            path = os.path.abspath(path)
+            dist = self.find_distributions(path)
+            if len(dist):
                 dist = dist[0]
                 egg = eggs.get( (dist.project_name, dist.version) )
             else:
@@ -417,7 +420,7 @@ class Packages:
                 self.local_eggs[dist.project_name] = (dist.project_name, dist.version, egg.location)
             elif os.path.isdir(path):
                 print "Hostout: Develop egg %s changed. Releasing with hash %s" % (path,hash)
-                res = self.setup(args=[path,
+                args=[path,
                                      'clean',
                                      'egg_info',
                                      '--tag-build','dev_'+hash,
@@ -426,11 +429,15 @@ class Packages:
                                       'bdist_egg',
                                      '--dist-dir',
                                      '%s'%localdist_dir,
-                                      ])
-                dist = [d for d in pkg_resources.find_distributions(path, only=True)]
-                dist = dist[0]
-                self.local_eggs[dist.project_name] = (dist.project_name, dist.version, None)
-                released[dist.project_name] = dist.version
+                                      ]
+                res = self.setup(args = args)
+                dist = self.find_distributions(path)
+                if len(dist):
+                    dist = dist[0]
+                    self.local_eggs[dist.project_name] = (dist.project_name, dist.version, None)
+                    released[dist.project_name] = dist.version
+                else:
+                    raise "Error releasing egg at %s: No egg found after \n python setup.py %s" % (path, ' '.join(args))
             else:
 #                shutil.copy(path,localdist_dir)
                 self.local_eggs[path] = (None, None, path)
@@ -448,6 +455,11 @@ class Packages:
             specs = ["\t%s = %s"% (p,v) for p,v,e in self.local_eggs.values()]
             print "Hostout: Eggs to transport:\n%s" % '\n'.join(specs)
         return self.local_eggs
+
+    def find_distributions(self, path):
+        #HACK: need to parse setup.py instead assuming src
+        return [d for d in pkg_resources.find_distributions(path, only=True)] + \
+            [d for d in pkg_resources.find_distributions(os.path.join(path,'src'), only=True)]
 
     def getVersion(self, path):
         "Test to see if we already have a release of this developer egg"
