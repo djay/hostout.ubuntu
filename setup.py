@@ -55,6 +55,7 @@ setup(
                     ['default = collective.hostout:Recipe',
                     "supervisor = collective.hostout.supervisor:Recipe",
                     'ubuntu = collective.hostout.ubuntu:Recipe',
-                    'mrdeveloper = collective.hostout.mrdeveloper:Recipe']},
+                    'mrdeveloper = collective.hostout.mrdeveloper:Recipe',
+                    'datafs = collective.hostout.datafs:Recipe']},
     zip_safe = False,
     )

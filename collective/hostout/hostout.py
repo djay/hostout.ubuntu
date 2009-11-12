@@ -554,12 +554,14 @@ def main(cfgfile, args):
                         break
 
     else:
+            
             cmd = {}
             torun = allhosts.values()
             for hostout in torun:
                 hostout.readsshconfig()
                 for c in hostout.runfabric():
                     cmd.setdefault(c, 1)
+
             print >> sys.stderr, "valid commands are - %s"%cmd.keys()
 
 
