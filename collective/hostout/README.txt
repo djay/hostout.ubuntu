@@ -266,7 +266,8 @@ if you include this extension your hostout deployment will fail if you have any 
 ...
 
 >>> print system('bin/hostout deploy host1')
-Package 'example1' has been modified. Do you want to deploy anyway [y/N]?
+Package 'example1' has been modified.
+Hostout aborted
 
 collective.hostout.datafs
 *************************

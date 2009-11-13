@@ -106,7 +106,7 @@ class Recipe:
                 for key in part:
                     if key == 'fabfiles':
                         fabfiles = part[key].split()
-                        self.options[key] = '\n'.join(self.options.get(key).split()+fabfiles)
+                        self.options[key] = '\n'.join(self.options.get(key, '').split()+fabfiles)
                     else:
                         self.options[key] = part[key]
         return seen

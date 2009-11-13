@@ -23,7 +23,6 @@ from os.path import dirname, abspath
 from pkg_resources import resource_string, resource_filename
 
 
-
 class Recipe:
     """hostout.supervisor recipe adds pre and post commands to run supervisor"""
 
@@ -35,9 +34,8 @@ class Recipe:
 
         self.options['fabfiles'] = fabfile = resource_filename(__name__, 'fabfile.py')
 
-
         self.options['pre-commands'] = "%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor)
-        self.options['post-commands'] = "%s/%sd shutdown"% (bin,supervisor)
+        self.options['post-commands'] = "%s/%sd"% (bin,supervisor)
 
         if self.options.get('init.d') is not None:
             # based on
@@ -46,7 +44,6 @@ class Recipe:
                 "cd /etc/init.d && ln -s %s/%sd %s-%sd" % (bin, name, supervisor)
             self.options['post-commands'] += \
                 "cd /etc/init.d && update-rc.d %s-%sd defaults" % (name, supervisor)
-
 
     def install(self):
         return []

@@ -1,33 +1,26 @@
-import os
-from os.path import join, basename, dirname
-
-
-
-def initdsupervisor():
-    hostout = get('hostout')
-
-    # based on
-    # http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
-    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
-    supervisor = hostout.options['supervisor']
-    sudo('sh -c "cd /etc/init.d && ln -s %s/%sd %s-%sd"' % (bin, supervisor, hostout.name, supervisor))
-    sudo('sh -c "cd /etc/init.d && update-rc.d %s-%sd defaults"' % (hostout.name, supervisor))
-
-
+import commands
 
 def predeploy():
-    hostout = get('hostout')
-    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
-    supervisor = hostout.options['supervisor']
-    sudo("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
-    if hostout.options.get('init.d') is not None:
-        initdsupervisor(hostout)
+    """ check status of local source code before deployment
+    """
+    res = True
+    # cancel deployment incase mr.developer not installed
+    mrdevNotInstalled, msg = commands.getstatusoutput('bin/develop')
+    if mrdevNotInstalled:
+        print >> sys.stderr, 'mr.developer Not Found'
+        return False
 
+    # check status of packages using mr.developer
+    allstatus = commands.getoutput('bin/develop st')
+    pkgstatus = allstatus.split('\n')
+    for status in pkgstatus:
+        # catch the status symbol return from command output
+        if len(status) > 2 and status[2] <> ' ':
+            print >> sys.stderr, 'Package \'%s\' has been modified.' % status[6:]
+            res = False
 
-def postdeploy():
-    hostout = get('hostout')
-    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
-    supervisor = hostout.options['supervisor']
-    sudo("%s/%sd shutdown"% (bin,supervisor))
+    if res is False:
+        print >> sys.stderr, 'Please commit your changes before deployment!'
+        return False
 
-
+    return True
