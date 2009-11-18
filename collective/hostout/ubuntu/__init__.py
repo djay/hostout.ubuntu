@@ -29,23 +29,8 @@ class Recipe:
 
     def __init__(self, buildout, name, options):
         self.name, self.options, self.buildout = name, options, buildout
-        supervisor = self.options.get('supervisor','supervisor')
-        self.options['supervisor'] = supervisor
-        bin = buildout['buildout']['bin-directory']
-
         self.options['fabfiles'] = fabfile = resource_filename(__name__, 'fabfile.py')
-
-
-        self.options['pre-commands'] = "%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor)
-        self.options['post-commands'] = "%s/%sd shutdown"% (bin,supervisor)
-
-        if self.options.get('init.d') is not None:
-            # based on
-            # http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
-            self.options['post-commands'] += \
-                "cd /etc/init.d && ln -s %s/%sd %s-%sd" % (bin, name, supervisor)
-            self.options['post-commands'] += \
-                "cd /etc/init.d && update-rc.d %s-%sd defaults" % (name, supervisor)
+        self.options['python-version'] = options.get('python-version','2.4.4')
 
 
     def install(self):
