@@ -99,8 +99,8 @@ def dodeploy():
             sudo('test -f %s'%tgt)
         except:
             put(pkg, tmp)
-            sudo("mv %s %s"%(tmp,tgt))
-            sudo('chown $(effectiveuser) %s' % tgt)
+            sudo("mv  -f %s %s"%(tmp,tgt))
+            sudo('chmod a+r %s' % tgt)
 
     package=hostout.getHostoutPackage()
     tmp = join('/tmp', basename(package))

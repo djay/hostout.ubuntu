@@ -104,7 +104,7 @@ class Recipe:
             else:
                 self.extends(part, seen)
                 for key in part:
-                    if key == 'fabfiles':
+                    if key in ['fabfiles', 'pre-commands', 'post-commands']:
                         fabfiles = part[key].split()
                         self.options[key] = '\n'.join(self.options.get(key).split()+fabfiles)
                     else:
