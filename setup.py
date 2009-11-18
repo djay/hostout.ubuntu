@@ -53,9 +53,9 @@ setup(
                         ],
     entry_points = {'zc.buildout':
                     ['default = collective.hostout:Recipe',
-                    "supervisor = collective.hostout.supervisor:Recipe",
                     'ubuntu = collective.hostout.ubuntu:Recipe',
                     'mrdeveloper = collective.hostout.mrdeveloper:Recipe',
-                    'datafs = collective.hostout.datafs:Recipe']},
+                    'datafs = collective.hostout.datafs:Recipe',
+                    "supervisor = collective.hostout.supervisor:Recipe"]},
     zip_safe = False,
     )

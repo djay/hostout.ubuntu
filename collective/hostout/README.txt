@@ -93,7 +93,10 @@ between multiple hostout definitions
 ... parts = prod staging
 ...
 ... [hostout]
+<<<<<<< HEAD:collective/hostout/README.txt
 ... recipe = collective.hostout
+=======
+>>>>>>> master:collective/hostout/README.txt
 ... password = blah
 ... user = root
 ... identity-file = id_dsa.pub
@@ -130,6 +133,36 @@ Generated script '/sample-buildout/bin/hostout'.
 
 >>> print system('bin/hostout deploy')
 Invalid hostout hostouts are: prod staging
+<<<<<<< HEAD:collective/hostout/README.txt
+=======
+
+Plugins
+*******
+There are two ways to extend hostout. 
+
+fabfile
+  You can give a fabfile argument. This is a fabric file which contains commands which will then 
+  be available as commands on the hostout command line.
+  
+ recipes
+  You can create a buildout recipe which sets values which hostout can use. For instance you can 
+  create a recipe that sets options for pre-commands, post-commands or fabfile values. Such a 
+  recipe can be directly in teh extends value or by creating a part referenced in the extends
+  value.
+  
+collective.hostout:supervisor
+*****************************
+This recipe is an example of a hostout plugin. It will set pre and post commands to stop and then 
+restart supervisor after the deployment. It takes the following options
+
+supervisor
+  The name of the supervisor part to stop and restart
+  
+init.d
+  If set the supervisord script will be linked into init.d so any machine restart will also
+  start supervisor
+
+>>>>>>> master:collective/hostout/README.txt
 
 Options
 *******
@@ -179,6 +212,7 @@ include
 fabfiles
   Path to fabric files that contain commands which can then be called from the hostout
   script. Commands can access hostout options via hostout.options from the fabric environment.
+<<<<<<< HEAD:collective/hostout/README.txt
 
 pre-fabric
   A list of fabric commands that will be run before deployment. The fabric commands will need to 
@@ -187,6 +221,8 @@ pre-fabric
 post-fabric
   A list of fabric commands that will be run after deployment. The fabric commands will need to 
   be available in at least one fabric file listed in fabfiltes.
+=======
+>>>>>>> master:collective/hostout/README.txt
    
 buildout-cache
   If you want to override the default location for the buildout-cache on the host
