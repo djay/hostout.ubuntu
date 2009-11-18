@@ -104,15 +104,9 @@ class Recipe:
             else:
                 self.extends(part, seen)
                 for key in part:
-<<<<<<< HEAD:collective/hostout/__init__.py
-                    if key == 'fabfiles':
-                        fabfiles = part[key].split()
-                        self.options[key] = '\n'.join(self.options.get(key, '').split()+fabfiles)
-=======
                     if key in ['fabfiles', 'pre-commands', 'post-commands']:
                         fabfiles = part[key].split()
-                        self.options[key] = '\n'.join(self.options.get(key).split()+fabfiles)
->>>>>>> master:collective/hostout/__init__.py
+                        self.options[key] = '\n'.join(self.options.get(key, '').split()+fabfiles)
                     else:
                         self.options[key] = part[key]
         return seen

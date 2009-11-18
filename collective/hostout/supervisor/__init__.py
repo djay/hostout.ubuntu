@@ -23,10 +23,6 @@ from os.path import dirname, abspath
 from pkg_resources import resource_string, resource_filename
 
 
-<<<<<<< HEAD:collective/hostout/supervisor/__init__.py
-=======
-
->>>>>>> master:collective/hostout/supervisor/__init__.py
 class Recipe:
     """hostout.supervisor recipe adds pre and post commands to run supervisor"""
 
@@ -38,14 +34,8 @@ class Recipe:
 
         self.options['fabfiles'] = fabfile = resource_filename(__name__, 'fabfile.py')
 
-<<<<<<< HEAD:collective/hostout/supervisor/__init__.py
         self.options['pre-commands'] = "%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor)
         self.options['post-commands'] = "%s/%sd"% (bin,supervisor)
-=======
-
-        self.options['pre-commands'] = "%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor)
-        self.options['post-commands'] = "%s/%sd shutdown"% (bin,supervisor)
->>>>>>> master:collective/hostout/supervisor/__init__.py
 
         if self.options.get('init.d') is not None:
             # based on
@@ -55,10 +45,6 @@ class Recipe:
             self.options['post-commands'] += \
                 "cd /etc/init.d && update-rc.d %s-%sd defaults" % (name, supervisor)
 
-<<<<<<< HEAD:collective/hostout/supervisor/__init__.py
-=======
-
->>>>>>> master:collective/hostout/supervisor/__init__.py
     def install(self):
         return []
 

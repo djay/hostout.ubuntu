@@ -45,7 +45,6 @@ def predeploy():
     "install buildout and its dependencies"
     #run('export http_proxy=localhost:8123') # TODO get this from setting
     hostout = get('hostout')
-<<<<<<< HEAD:collective/hostout/fabfile.py
     set(
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
@@ -53,8 +52,6 @@ def predeploy():
         instance=os.path.split(hostout.remote_dir)[1],
         download_cache=hostout.getDownloadCache()
     )
-=======
->>>>>>> master:collective/hostout/fabfile.py
 
     set(dist_dir = hostout.getDownloadCache(),
         unified='Plone-3.2.1r3-UnifiedInstaller',
@@ -96,7 +93,6 @@ def predeploy():
 
 
 
-<<<<<<< HEAD:collective/hostout/fabfile.py
 def deploy():
     "deploy the package of changed cfg files"
     hostout = get('hostout')
@@ -107,11 +103,6 @@ def deploy():
         instance=os.path.split(hostout.remote_dir)[1],
         download_cache=hostout.getDownloadCache()
     )
-=======
-def dodeploy():
-    "deploy the package of changed cfg files"
-    hostout = get('hostout')
->>>>>>> master:collective/hostout/fabfile.py
 
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
 
@@ -160,13 +151,8 @@ def dodeploy():
 #    sudo('find $(install_dir)  -name runzope -exec chown $(effectiveuser) \{\} \;')
 
 
-<<<<<<< HEAD:collective/hostout/fabfile.py
 
 def postdeploy():
-=======
-def deploy():
-    ""
->>>>>>> master:collective/hostout/fabfile.py
     hostout = get('hostout')
     set(
         effectiveuser=hostout.effective_user,
@@ -176,16 +162,6 @@ def deploy():
         download_cache=hostout.getDownloadCache()
     )
 
-<<<<<<< HEAD:collective/hostout/fabfile.py
-=======
-    predeploy()
-    dodeploy()
-    postdeploy()
-
-def postdeploy():
-    hostout = get('hostout')
-
->>>>>>> master:collective/hostout/fabfile.py
     for cmd in hostout.getPostCommands():
         sudo('sh -c "%s"'%cmd)
 

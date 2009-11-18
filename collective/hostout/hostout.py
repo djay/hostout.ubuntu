@@ -267,7 +267,6 @@ class HostOut:
                                )
 
                     if cmd is not None:
-<<<<<<< HEAD:collective/hostout/hostout.py
                         res = cmd()
                         if res not in [None,True]:
                             print >> sys.stderr, "Hostout aborted"
@@ -275,9 +274,6 @@ class HostOut:
                             break
                         else:
                             res = True
-=======
-                        cmd()
->>>>>>> master:collective/hostout/hostout.py
                 if cmd is None:
                     print >> sys.stderr, "Invalid command. Valid commands are - %s" % cmds.keys()
 
@@ -433,7 +429,6 @@ class Packages:
                                       'bdist_egg',
                                      '--dist-dir',
                                      '%s'%localdist_dir,
-<<<<<<< HEAD:collective/hostout/hostout.py
                                       ]
                 res = self.setup(args = args)
                 dist = self.find_distributions(path)
@@ -443,13 +438,6 @@ class Packages:
                     released[dist.project_name] = dist.version
                 else:
                     raise "Error releasing egg at %s: No egg found after \n python setup.py %s" % (path, ' '.join(args))
-=======
-                                      ])
-                dist = [d for d in pkg_resources.find_distributions(path, only=True)]
-                dist = dist[0]
-                self.local_eggs[dist.project_name] = (dist.project_name, dist.version, None)
-                released[dist.project_name] = dist.version
->>>>>>> master:collective/hostout/hostout.py
             else:
 #                shutil.copy(path,localdist_dir)
                 self.local_eggs[path] = (None, None, path)
@@ -561,29 +549,18 @@ def main(cfgfile, args):
         elif cmd:
             for hostout in torun:
                 hostout.readsshconfig()
-<<<<<<< HEAD:collective/hostout/hostout.py
                 for cmd in cmds:
                     if not hostout.runfabric(cmd):
                         break
 
     else:
-            
-=======
-                res = hostout.runfabric(cmd)
-                if res:
-                    print >> sys.stderr, "Invalid command. Valid commands are - %s"%res
-    else:
->>>>>>> master:collective/hostout/hostout.py
+
             cmd = {}
             torun = allhosts.values()
             for hostout in torun:
                 hostout.readsshconfig()
                 for c in hostout.runfabric():
                     cmd.setdefault(c, 1)
-<<<<<<< HEAD:collective/hostout/hostout.py
-
-=======
->>>>>>> master:collective/hostout/hostout.py
             print >> sys.stderr, "valid commands are - %s"%cmd.keys()
 
 
