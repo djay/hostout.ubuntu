@@ -21,7 +21,7 @@ def read(*rnames):
 name = "collective.hostout"
 setup(
     name = name,
-    version = "0.9.3",
+    version = "0.9.4",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = "one click deployment for buildout based applications",
@@ -48,8 +48,8 @@ setup(
     install_requires = ['zc.buildout',
                         'zc.recipe.egg',
                         'setuptools',
-                        'Fabric<0.1.0', #in order to make it 2.4 compatible
-                        'functools' ,#needed for fabric to make it 2.4 compatible
+                        'Fabric>=0.9.0', #in order to make it 2.4 compatible
+                        #'functools' ,#needed for fabric to make it 2.4 compatible
                         ],
     entry_points = {'zc.buildout':
                     ['default = collective.hostout:Recipe',
