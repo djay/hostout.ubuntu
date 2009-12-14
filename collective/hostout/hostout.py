@@ -242,20 +242,41 @@ class HostOut:
 
 
 
-    def runfabric(self, command=None):
+    def runfabric(self, command=None, args=[]):
         "return all commands if none found to run"
 
         cmds = {}
         cmd = None
         res = True
+        ran = False
+        fabric.COMMANDS = {}
+        fabric.USER_COMMANDS = {}
+        sets = [(fabric.COMMANDS,"<DEFAULT>")]
+        for fabfile in self.fabfiles:
+            fabric.COMMANDS = {}
+            fabric.USER_COMMANDS = {}
+
+            fabric._load_default_settings()
+            fabric.load(fabfile, fail='warn')
+            sets.append((fabric.COMMANDS,fabfile))
+        if command is None:
+            allcmds = {}
+            for commands,fabfile in sets:
+                allcmds.update(commands)
+            return allcmds
+        
 
         try:
             try:
-                fabric._load_default_settings()
-                for fabfile in self.fabfiles:
-                    fabric.load(fabfile, fail='warn')
-                    cmds.update(fabric.COMMANDS)
-                    cmd = fabric.COMMANDS.get(command, None)
+                for commands, fabfile in sets:
+                    cmds.update(commands)
+                    cmd = commands.get(command, None)
+                    if cmd is None:
+	                    continue
+                    fabric.USER_COMMANDS = {}
+                    fabric.COMMANDS = commands
+                    fabric._load_default_settings()
+                    print "Hostout: Running command '%s' from '%s'" % (command, fabfile)
                     fabric.set(hostout=self)
                     if self.password:
                         fabric.set(fab_password=self.password)
@@ -267,15 +288,14 @@ class HostOut:
                                )
 
                     if cmd is not None:
-                        res = cmd()
+                        ran = True
+                        res = cmd(*args)
                         if res not in [None,True]:
                             print >> sys.stderr, "Hostout aborted"
                             res = False
                             break
                         else:
                             res = True
-                if cmd is None:
-                    print >> sys.stderr, "Invalid command. Valid commands are - %s" % cmds.keys()
 
             finally:
                 fabric._disconnect()
@@ -528,40 +548,64 @@ def main(cfgfile, args):
 #    buildout = Buildout(config.get('buildout','buildout'),[])
     packages = Packages(config)
     #eggs = packages.release_eggs()
+    # 
+        
     for section in [s for s in config.sections() if s not in ['buildout', 'versions']]:
         options = dict(config.items(section))
 
         hostout = HostOut(section, options, packages)
         allhosts[section] = hostout
-    if args:
-        cmd, hosts = args[0],args[1:]
-        if cmd == 'deploy':
-            cmds = ['predeploy','deploy','postdeploy']
-        else:
-            cmds = [cmd]
 
-        if 'all' in hosts:
-            torun = allhosts.values()
-        else:
-            torun = [allhosts[host] for host in hosts if host in allhosts]
-        if not torun:
-            print >> sys.stderr, "Invalid hostout hostouts are: %s"% ' '.join(allhosts.keys())
-        elif cmd:
-            for hostout in torun:
+    # cmdline is bin/hostout host1 host2 ... cmd1 cmd2 ... arg1 arg2...
+    cmds = []
+    cmdargs = []
+    hosts = []
+    pos = 'hosts'
+    for arg in args:
+        if pos == 'hosts':
+            if arg in allhosts:
+                hosts += [(arg,allhosts[arg])]
+                continue
+            elif arg == 'all':
+                hosts = allhosts.items()
+            pos = 'cmds'
+            # get all cmds
+            allcmds = {'deploy':None}
+            for hostout in allhosts.values():
                 hostout.readsshconfig()
-                for cmd in cmds:
-                    if not hostout.runfabric(cmd):
-                        break
+                allcmds.update(hostout.runfabric())
+            
+        if pos == 'cmds':
+            if arg == 'deploy':
+                cmds += ['predeploy','uploadeggs','uploadbuildout','buildout','postdeploy']
+                continue
+            elif arg in allcmds:
+                cmds += [arg]
+                continue
+            pos = 'args'
+        if pos == 'args':
+            cmdargs += [arg]
 
+    if not hosts or not cmds:
+        print >> sys.stderr, "cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]"
+    if not hosts:
+        print >> sys.stderr, "Valid hosts are: %s"% ' '.join(allhosts.keys())
+    elif not cmds:
+        print >> sys.stderr, "Valid commands are - %s"%allcmds.keys()
     else:
-
-            cmd = {}
-            torun = allhosts.values()
-            for hostout in torun:
-                hostout.readsshconfig()
-                for c in hostout.runfabric():
-                    cmd.setdefault(c, 1)
-            print >> sys.stderr, "valid commands are - %s"%cmd.keys()
+        for host, hostout in hosts:
+            hostout.readsshconfig()
+            for cmd in cmds:
+                if cmd == cmds[-1]:
+                    res = hostout.runfabric(cmd, cmdargs)
+                else:
+                    res = hostout.runfabric(cmd)
+                if res == True:
+                    continue
+                elif res == False:
+                    break
+                else:
+                    print >> sys.stderr, "'%s' is not a valid command for host '%s' - %s"%(cmd,host,res.keys())
 
 
 

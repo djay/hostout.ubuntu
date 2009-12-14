@@ -93,7 +93,7 @@ def predeploy():
 
 
 
-def deploy():
+def uploadeggs():
     "deploy the package of changed cfg files"
     hostout = get('hostout')
     set(
@@ -115,6 +115,16 @@ def deploy():
             put(pkg, tmp)
             sudo("mv  -f %s %s"%(tmp,tgt))
             sudo('chmod a+r %s' % tgt)
+
+def uploadbuildout():
+    hostout = get('hostout')
+    set(
+        effectiveuser=hostout.effective_user,
+        buildout_dir=hostout.remote_dir,
+        install_dir=os.path.split(hostout.remote_dir)[0],
+        instance=os.path.split(hostout.remote_dir)[1],
+        download_cache=hostout.getDownloadCache()
+    )
 
     package=hostout.getHostoutPackage()
     tmp = join('/tmp', basename(package))
@@ -142,6 +152,21 @@ def deploy():
  #       sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file) install %s"' % parts)
   #  else:
     #Need to set home var for svn to work
+    # 
+
+def buildout():
+    hostout = get('hostout')
+    set(
+        effectiveuser=hostout.effective_user,
+        buildout_dir=hostout.remote_dir,
+        install_dir=os.path.split(hostout.remote_dir)[0],
+    )
+    set(
+        #fab_key_filename="buildout_dsa",
+        dist_dir=hostout.dist_dir,
+        install_dir=hostout.remote_dir,
+        hostout_file=hostout.getHostoutFile(),
+    )
     sudo('sudo -u $(effectiveuser) sh -c "export HOME=~$(effectiveuser) && cd $(install_dir) && bin/buildout -c $(hostout_file)"')
 
 #    run('cd $(install_dir) && $(reload_cmd)')
@@ -164,5 +189,9 @@ def postdeploy():
 
     for cmd in hostout.getPostCommands():
         sudo('sh -c "%s"'%cmd)
+
+def cmd(*cmd):
+    hostout = get('hostout')
+    sudo('sh -c "cd %s && %s"'%(hostout.remote_dir,' '.join(cmd)))
 
 
