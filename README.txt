@@ -1,7 +1,7 @@
 
-collective.hostout is a zc.buildout recipe to make buildout as easy to deploy as ftp.
-You can use it to create a hosting environment for your local buildout and then upload
-your buildout and custom code as you develop.
+collective.hostout is a remote control for you application production environment.
+Hostout makes it easy to connect one buildout to another via fabric scripts helping
+you deploy to and manage your application one or many remote hosts.
 
 .. contents::
 

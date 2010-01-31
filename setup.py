@@ -31,13 +31,13 @@ setup(
     long_description=(
         read('README.txt')
         + '\n' +
-        read('CHANGES.txt')
-        + '\n' +
         'Detailed Documentation\n'
         '**********************\n'
         + '\n' +
         read('collective', 'hostout', 'README.txt')
-        + '\n'
+        + '\n' +
+        read('CHANGES.txt')
+        + '\n' 
         ),
 
     packages = find_packages(),
