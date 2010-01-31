@@ -88,7 +88,13 @@ class HostOut:
         self.name = name
         self.effective_user = opt['effective-user']
         self.remote_dir = opt['path']
-        self.host = opt['host']
+	try:
+	    self.host, self.port = opt['host'].split(':')
+	    self.port = int(self.port)
+	except:
+            self.host = opt['host']
+	    self.port = 22
+	    
         self.user = opt['user']
         self.password = opt['password']
         self.identityfile = opt['identity-file']
@@ -282,9 +288,11 @@ class HostOut:
                         fabric.set(fab_password=self.password)
                     if self.identityfile:
                         fabric.set(fab_key_filename=self.identityfile)
+
                     fabric.set(
                                fab_user=self.user,
                                fab_hosts=[self.host],
+			       fab_port=self.port,
                                )
 
                     if cmd is not None:
@@ -561,20 +569,20 @@ def main(cfgfile, args):
     cmdargs = []
     hosts = []
     pos = 'hosts'
-    for arg in args:
+    for arg in args + [None]:
         if pos == 'hosts':
             if arg in allhosts:
                 hosts += [(arg,allhosts[arg])]
                 continue
             elif arg == 'all':
                 hosts = allhosts.items()
-            pos = 'cmds'
-            # get all cmds
-            allcmds = {'deploy':None}
-            for hostout in allhosts.values():
-                hostout.readsshconfig()
-                allcmds.update(hostout.runfabric())
-            
+	    else:
+		pos = 'cmds'            
+        	# get all cmds
+		allcmds = {'deploy':None}
+        	for host,hostout in hosts:
+		    hostout.readsshconfig()
+		    allcmds.update(hostout.runfabric())
         if pos == 'cmds':
             if arg == 'deploy':
                 cmds += ['predeploy','uploadeggs','uploadbuildout','buildout','postdeploy']
@@ -583,8 +591,9 @@ def main(cfgfile, args):
                 cmds += [arg]
                 continue
             pos = 'args'
-        if pos == 'args':
+        if pos == 'args' and arg is not None:
             cmdargs += [arg]
+
 
     if not hosts or not cmds:
         print >> sys.stderr, "cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]"
