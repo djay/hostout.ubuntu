@@ -1,5 +1,5 @@
 import os
-from os.path import join, basename, dirname
+import os.path  #import os.path.join, os.path.basename, os.path.dirname
 
 initd = """
 #!/bin/sh
@@ -57,6 +57,7 @@ exit $REVAL
 
 
 def installonstartup():
+    """Installs supervisor into your init.d scripts in order to ensure that supervisor is started on boot"""
     hostout = get('hostout')
 
     # based on
@@ -78,6 +79,7 @@ def postdeploy():
     supervisorstartup()
     
 def supervisorstartup():
+    """Start the supervisor daemon"""
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
@@ -85,16 +87,18 @@ def supervisorstartup():
     sudo("%s/%sctl status"% (bin,supervisor))
 
 def supervisorshutdown():
+    """Shutdown the supervisor daemon"""
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
     sudo("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
 
 def supervisorctl(*args):
+    """Takes command line arguments and runs supervisorctl on the remote host"""
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
-    sudo("%s/%sctl %s"% (bin,supervisor,' '.join(args)) )
+    sudo("%s/%sctl %s"% (bin,supervisor,' '.os.path.join(args)) )
 
 
 

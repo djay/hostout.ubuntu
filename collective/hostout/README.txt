@@ -51,14 +51,23 @@ Each host refers to the name of a part with recipe=collective.hostout in your bu
 Each host corresponds to a host and remote path which is the default location for commands to act on.
 
 >>> print system('bin/hostout host1')
-cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
-Valid commands are - ['uploadeggs', 'join', 'deploy', 'basename', 'cmd', 'postdeploy', 'resetpermissions', 'uploadbuildout', 'createuser', 'buildout', 'dirname', 'predeploy']
+    cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
+    Valid commands are:
+       buildout         : Run the buildout on the remote server
+       deploy
+       postdeploy       : Perform any final plugin tasks
+       predeploy        : Install buildout and its dependencies if needed. Hookpoint for plugins
+       resetpermissions : Ensure ownership and permissions are correct on buildout and cache
+       run              : Execute cmd on remote as login user
+       sudo             : Execute cmd on remote as root user
+       uploadbuildout   : A special buildout is prepared referencing uploaded eggs and all other eggs pinned to the local picked versions
+       uploadeggs       : Any develop eggs are released as eggs and uploaded to the server
 
->>> print system('bin/hostout host1 cmd pwd')
-Hostout: Running command 'cmd' from '.../fabfile.py'
+>>> print system('bin/hostout host1 run pwd')
+Hostout: Running command 'run' from '.../fabfile.py'
 Logging into the following hosts as root:
     127.0.0.1
-[127.0.0.1] sudo: sh -c "cd /usr/local/plone/host1 && pwd"
+[127.0.0.1] run: sh -c "cd /usr/local/plone/host1 && pwd"
 [127.0.0.1] out: CMD RECIEVED
 Done.
 
@@ -138,7 +147,7 @@ to our buildout as well.
 ...
 ... setup(
 ...     name = "example",
-...     entry_points = {'zc.buildout': ['mkdir = mkdir:Mkdir']},
+...     entry_points = {'default': ['mkdir = mkdir:Mkdir']},
 ...     )
 ... """)
 
@@ -276,18 +285,17 @@ restart supervisor after the deployment. It takes the following options
     Uninstalling example.
     Installing host1.
 
-#>>> print system('bin/hostout host1')
-cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
-Valid commands are - ['installonstartup',..., 'supervisorstartup',..., 'supervisorshutdown',...'supervisorctl'...]
+>>> print system('bin/hostout host1')
+    cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
+    Valid commands are:
+    ...
+       installonstartup   : Installs supervisor into your init.d scripts in order to ensure that supervisor is started on boot
+    ...
+       supervisorctl      : Takes command line arguments and runs supervisorctl on the remote host
+       supervisorshutdown : Shutdown the supervisor daemon
+       supervisorstartup  : Start the supervisor daemon
+    ...
  
-
-The following commands:
-supervisorctl
-  Takes command line arguments and runs supervisorctl on the remote host
-installonboot
-  Installs supervisor into your init.d scripts in order to ensure that supervisor
-  is started on book
-
 The following options maybe used
 
 supervisor
@@ -301,20 +309,19 @@ In addition supervisor plugin will shutdown supervisor during pre-deployment and
 supervisor during post-deployment.
 
 >>> print system('bin/hostout host1 deploy')
-Hostout: Running command 'predeploy' from '.../collective/hostout/supervisor/fabfile.py'
-...
-[127.0.0.1] sudo: /var/lib/plone/host1/bin/supervisorctl shutdown || echo 'Failed to shutdown'
-...
-Hostout: Running command 'predeploy' from '.../collective/hostout/fabfile.py'
-...
-Hostout: Running command 'postdeploy' from '.../collective/hostout/supervisor/fabfile.py'
-...
-[127.0.0.1] sudo: /var/lib/plone/host1/bin/supervisord
-...
-[127.0.0.1] sudo: /var/lib/plone/host1/bin/supervisorctl status
-Hostout: Running command 'postdeploy' from '.../collective.hostout/collective/hostout/fabfile.py'
-...
-
+    Hostout: Running command 'predeploy' from '/.../collective/hostout/supervisor/fabfile.py'
+    Logging into the following hosts as :
+        127.0.0.1
+    [127.0.0.1] sudo: /var/lib/plone/host1/bin/supervisorctl shutdown || echo 'Failed to shutdown'
+    ...
+    Hostout: Running command 'postdeploy' from '/.../collective/hostout/supervisor/fabfile.py'
+    ...
+    [127.0.0.1] sudo: /var/lib/plone/host1/bin/supervisord
+    ...
+    [127.0.0.1] sudo: /var/lib/plone/host1/bin/supervisorctl status
+    ...
+    Hostout: Running command 'postdeploy' from '.../collective.hostout/collective/hostout/fabfile.py'
+    ...
 
 
 collective.hostout:mrdeveloper
@@ -324,7 +331,18 @@ if you include this extension your hostout deployment will fail if you have any 
 >>> write('buildout.cfg',
 ... """
 ... [buildout]
-... parts = host1
+... parts = host1 example
+... extensions =
+...    mr.developer
+... sources = sources
+... sources-dir = .
+... auto-checkout = example
+... [sources]
+... example = fs example
+...
+... [example]
+... recipe = zc.recipe.egg
+... eggs = example
 ...
 ... [host1]
 ... recipe = collective.hostout
@@ -335,9 +353,18 @@ if you include this extension your hostout deployment will fail if you have any 
 ... """ )
 
 >>> print system('bin/buildout -N')
+    mr.developer: Filesystem package 'example' doesn't need a checkout.
+    Develop: '/sample-buildout/./example'
+    Uninstalling host1.
+    Installing _mr.developer.
+    Getting distribution for 'elementtree'.
+    Got elementtree 1.2.6-20050316.
+    Generated script '/sample-buildout/bin/develop'.
+    Installing example.
+    Installing host1.
 
 
->>> print system('bin/hostout deploy host1')
+#>>> print system('bin/hostout host1 deploy')
 Package 'example1' has been modified.
 Hostout aborted
 
@@ -374,19 +401,19 @@ of a zope or plone installation.
 ...
 ... """ % globals())
 
->>> print system('bin/buildout -N')
+#>>> print system('bin/buildout -N')
 
->>> print system('bin/hostout upload host1')
+#>>> print system('bin/hostout host1 upload')
 This will overwrite the following filestorage files on your host.
 - var/filestorage/Data.fs
 Are you sure you want to do this [y/N]?
 
->>> print system('bin/hostout download host1')
+#>>> print system('bin/hostout host1 download')
 This will overwrite the following filestorage files on your local buildout directory.
 - var/filestorage/Data.fs
 Are you sure you want to do this [y/N]?
 
->>> print system('bin/hostout backup host1')
+#>>> print system('bin/hostout host1 backup')
 Running repozo to create backup on remote server 'host1'
 ...
 
@@ -417,7 +444,7 @@ between multiple hostout definitions
 ... [prod]
 ... recipe = collective.hostout
 ... extends = hostout
-... host = www.prod.com
+... host = localhost:10022
 ... buildout =
 ...    config/prod.cfg
 ... path = /var/plone/prod
@@ -433,11 +460,14 @@ between multiple hostout definitions
 ... """ % globals())
 
 >>> print system('bin/buildout -N')
-Installing prod.
-Installing staging.
-Generated script '/sample-buildout/bin/hostout'.
+    Uninstalling host1.
+    Uninstalling example.
+    Uninstalling _mr.developer.
+    Installing hostout.
+    Installing staging.
+    Installing prod.
 
->>> print system('bin/hostout deploy')
+#>>> print system('bin/hostout deploy')
 Invalid hostout hostouts are: prod staging
 
 

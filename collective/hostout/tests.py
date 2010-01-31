@@ -100,8 +100,7 @@ def setUp(test):
     zc.buildout.testing.install('paramiko', test)
     zc.buildout.testing.install('pycrypto', test)
     zc.buildout.testing.install('zc.recipe.egg', test)
-    fabric._connect = _connect
-    fabric.run = run
+    zc.buildout.testing.install('mr.developer', test)
     
     localssh.start()
 #    client  = ssh.SSHClient()

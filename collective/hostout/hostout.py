@@ -55,6 +55,7 @@ def clean(lines):
 
 _isurl = re.compile('([a-zA-Z0-9+.-]+)://').match
 
+max_name_len = 18
 
 def get_all_extends(cfgfile):
     if _isurl(cfgfile):
@@ -600,7 +601,16 @@ def main(cfgfile, args):
     if not hosts:
         print >> sys.stderr, "Valid hosts are: %s"% ' '.join(allhosts.keys())
     elif not cmds:
-        print >> sys.stderr, "Valid commands are - %s"%allcmds.keys()
+        print >> sys.stderr, "Valid commands are:"
+        max_name_len = reduce(lambda a,b: max(a, len(b)), allcmds.keys(), 0)
+        cmds = allcmds.items()
+        cmds.sort(lambda x,y: cmp(x[0], y[0]))
+	for name, fn in cmds:
+	    print >> sys.stderr, '  ', name.ljust(max_name_len),
+	    if fn.__doc__:
+		print >> sys.stderr, ':', fn.__doc__.splitlines()[0]
+	    else:
+	        print >> sys.stderr, ''
     else:
         for host, hostout in hosts:
             hostout.readsshconfig()

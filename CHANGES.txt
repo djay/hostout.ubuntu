@@ -1,6 +1,15 @@
 Release History
 ***************
 
+0.9.4 (2009-01-31)
+==================
+- documentation clearer and more details
+- ssh tests now working
+- commandline changed to allow multsite and arguments
+- mr.developer plugin
+- Nice listing of available commands
+
+
 0.9.3
 ==================
 - Fixed how extends works
@@ -25,7 +34,7 @@ Release History
 ==================
 - new commandline to allow deploying to multiple hosts at once
 - ability to take defaults from another part using 'extends' option
-- fabfile option to create your own hostout commands
+- fabfiles option to create your own hostout commands
 - moved hostout cfg generation to deployment time
 - egg releases hash of contents as version numbers and won't be built or uploaded unless changed
 - new parts option to only install specified parts
@@ -42,7 +51,7 @@ Release History
 - Fixed getting fabfile as a resource when packaged as an egg
 - Allow for specifying extra configuration not in the buildout files
 
-0.1.2 (2009-24-04)
+0.1.2 (2009-04-24)
 ==================
 
 Initial release. Basic uploading of eggs and running of remote buildout.
