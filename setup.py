@@ -24,20 +24,19 @@ setup(
     version = "0.9.4",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
-    description = "one click deployment for buildout based applications",
+    description = """collective.hostout will help you control multiple application environments
+    with the minimum amount of effort. You can manage local, staging and deployment environments
+    with one easy tool.""",
     license = "GPL",
-    keywords = "buildout, deploy, deployment, server, plone, django, host, hosting",
+    keywords = "buildout, fabric, deploy, deployment, server, plone, django, host, hosting",
     url='https://svn.plone.org/svn/collective/'+name,
     long_description=(
         read('README.txt')
         + '\n' +
-        read('CHANGES.txt')
-        + '\n' +
-        'Detailed Documentation\n'
-        '**********************\n'
-        + '\n' +
         read('collective', 'hostout', 'README.txt')
-        + '\n'
+        + '\n' +
+        read('CHANGES.txt')
+        + '\n' 
         ),
 
     packages = find_packages(),
@@ -48,14 +47,15 @@ setup(
     install_requires = ['zc.buildout',
                         'zc.recipe.egg',
                         'setuptools',
-                        'Fabric>=0.9.0', #in order to make it 2.4 compatible
-                        #'functools' ,#needed for fabric to make it 2.4 compatible
+                        'Fabric', 
                         ],
     entry_points = {'zc.buildout':
                     ['default = collective.hostout:Recipe',
                     'ubuntu = collective.hostout.ubuntu:Recipe',
                     'mrdeveloper = collective.hostout.mrdeveloper:Recipe',
                     'datafs = collective.hostout.datafs:Recipe',
-                    "supervisor = collective.hostout.supervisor:Recipe"]},
+                    "supervisor = collective.hostout.supervisor:Recipe"],
+                    'console_scripts': ['hostout = collective.hostout.hostout:main'],
+                    },
     zip_safe = False,
     )

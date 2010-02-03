@@ -33,6 +33,7 @@ class Recipe:
     def __init__(self, buildout, name, options):
 
         self.egg = zc.recipe.egg.Egg(buildout, options['recipe'], options)
+        
         self.name, self.options, self.buildout = name, options, buildout
 
         #get all recipes here to make sure we're the last called
@@ -59,6 +60,7 @@ class Recipe:
 
         self.fabfiles = []
         self.subrecipes = []
+        self.subpackages = []
         self.extends(options, [])
 
 
@@ -77,6 +79,12 @@ class Recipe:
         self.options.setdefault('path', self.options.get('remote_path','/var/lib/plone/%s'%name))
 #        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
         self.options.setdefault('buildout_location',self.buildout_dir)
+
+        self.options['arguments']="'%s',sys.argv[1:]"%self.optionsfile
+        self.options['scripts'] = 'hostout'
+        self.options['eggs'] = '\n'.join(self.options.get('eggs','').split() + ['collective.hostout'])
+        self.script = zc.recipe.egg.Scripts(buildout, options['recipe'], options)
+
 
     def extends(self, options, seen):
 
@@ -100,6 +108,8 @@ class Recipe:
                 recipe_class = _install_and_load(reqs, 'zc.buildout', entry, self.buildout)
                 recipe = recipe_class(self.buildout, self.name, self.options)
                 self.subrecipes.append(recipe)
+                self.options['eggs'] = '\n'.join(self.options.get('eggs','').split() + [extension])
+
                 continue
             else:
                 self.extends(part, seen)
@@ -153,16 +163,7 @@ class Recipe:
 
 
         if self.options.get('mainhostout') is not None:
-            requirements, ws = self.egg.working_set()
-            bin = self.buildout['buildout']['bin-directory']
-            extra_paths=[]
-            zc.buildout.easy_install.scripts(
-                [('hostout', 'collective.hostout.hostout', 'main')],
-                ws, self.options['executable'], bin,
-                arguments="'%s',sys.argv[1:]"%self.optionsfile,
-                extra_paths=extra_paths
-#                initialization=address_info,
-                )
+            self.script.install()
 
         config = ConfigParser.RawConfigParser()
         config.optionxform = str
