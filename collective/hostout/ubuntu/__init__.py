@@ -25,12 +25,13 @@ from pkg_resources import resource_string, resource_filename
 
 
 class Recipe:
-    """hostout.supervisor recipe adds pre and post commands to run supervisor"""
+    """collective.hostout recipe adds pre and post commands to run supervisor"""
 
     def __init__(self, buildout, name, options):
         self.name, self.options, self.buildout = name, options, buildout
         self.options['fabfiles'] = fabfile = resource_filename(__name__, 'fabfile.py')
-        self.options['python-version'] = options.get('python-version','2.4.4')
+        version = '.'.join(sys.version_info)
+        self.options['python-version'] = options.get('python-version', version)
 
 
     def install(self):
