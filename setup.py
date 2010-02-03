@@ -47,6 +47,7 @@ setup(
     install_requires = ['zc.buildout',
                         'zc.recipe.egg',
                         'setuptools',
+                        #'Fabric',
                         'Fabric<0.1.0', #in order to make it 2.4 compatible
                         'functools' ,#needed for fabric to make it 2.4 compatible
                         ],
@@ -55,6 +56,8 @@ setup(
                     'ubuntu = collective.hostout.ubuntu:Recipe',
                     'mrdeveloper = collective.hostout.mrdeveloper:Recipe',
                     'datafs = collective.hostout.datafs:Recipe',
-                    "supervisor = collective.hostout.supervisor:Recipe"]},
+                    "supervisor = collective.hostout.supervisor:Recipe"],
+                    'console_scripts': ['hostout = collective.hostout.hostout:main'],
+                    },
     zip_safe = False,
     )

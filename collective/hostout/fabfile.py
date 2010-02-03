@@ -47,6 +47,14 @@ def predeploy():
 
     #run('export http_proxy=localhost:8123') # TODO get this from setting
     hostout = get('hostout')
+    
+    try:
+        run('test -f %s/bin/buildout' % hostout.remote_dir)
+    except:
+        bootstrap()
+
+def bootstrap():
+    """Install python and users needed to run buildout"""
     set(
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
@@ -120,7 +128,7 @@ def uploadeggs():
             sudo('chmod a+r %s' % tgt)
 
 def uploadbuildout():
-    """A special buildout is prepared referencing uploaded eggs and all other eggs pinned to the local picked versions """
+    """Upload buildout pinned to local picked versions + uploaded eggs """
     hostout = get('hostout')
     set(
         effectiveuser=hostout.effective_user,
