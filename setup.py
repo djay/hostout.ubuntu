@@ -21,18 +21,17 @@ def read(*rnames):
 name = "collective.hostout"
 setup(
     name = name,
-    version = "0.9.3",
+    version = "0.9.4",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
-    description = "one click deployment for buildout based applications",
+    description = """collective.hostout will help you control multiple application environments
+    with the minimum amount of effort. You can manage local, staging and deployment environments
+    with one easy tool.""",
     license = "GPL",
-    keywords = "buildout, deploy, deployment, server, plone, django, host, hosting",
+    keywords = "buildout, fabric, deploy, deployment, server, plone, django, host, hosting",
     url='https://svn.plone.org/svn/collective/'+name,
     long_description=(
         read('README.txt')
-        + '\n' +
-        'Detailed Documentation\n'
-        '**********************\n'
         + '\n' +
         read('collective', 'hostout', 'README.txt')
         + '\n' +

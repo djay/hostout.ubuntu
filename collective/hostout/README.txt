@@ -1,23 +1,12 @@
 
-Hostout is a zc.buildout recipe. see (http://pypi.python.org/pypi/zc.buildout#recipes)
-Installing hostout generates a script which logs into your remote host(s) and performs
-commands. e.g.
-
-$ bin/hostout productionserver deploy
-
-$ bin/hostout server1 server2 supervisorctl restart instance1
-
-$ bin/hostout all cmd ls -al
-
-$ bin/hostout staging mylocalfabriccommand
 
 Installing hostout
 ******************
 
-First follow instructions and to get your development buildout running on your development machine you're ready.
+First follow the instructions and to get your development buildout running on your development machine.
 You can add this recipe to a buildout for Plone, django or any other buildout based environment.
 
-Add the collective.hostout part to our development buildout.
+Add the collective.hostout part to your development buildout.
 
 >>> write('buildout.cfg',
 ... """
@@ -53,14 +42,15 @@ Each host corresponds to a host and remote path which is the default location fo
 >>> print system('bin/hostout host1')
     cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
     Valid commands are:
+       bootstrap        : Install python and users needed to run buildout
        buildout         : Run the buildout on the remote server
-       deploy
+       deploy           : predeploy, uploadeggs, uploadbuildout, buildout and then postdeploy
        postdeploy       : Perform any final plugin tasks
        predeploy        : Install buildout and its dependencies if needed. Hookpoint for plugins
        resetpermissions : Ensure ownership and permissions are correct on buildout and cache
        run              : Execute cmd on remote as login user
        sudo             : Execute cmd on remote as root user
-       uploadbuildout   : A special buildout is prepared referencing uploaded eggs and all other eggs pinned to the local picked versions
+       uploadbuildout   : Upload buildout pinned to local picked versions + uploaded eggs
        uploadeggs       : Any develop eggs are released as eggs and uploaded to the server
 
 >>> print system('bin/hostout host1 run pwd')
@@ -71,49 +61,29 @@ Logging into the following hosts as root:
 [127.0.0.1] out: CMD RECIEVED
 Done.
 
+Definitions
+***********
 
-Adding your own commands
-************************
+buildout
+  zc.buildout is a tool for creating an isolated environment for running applications. It is controlled
+  by a configuration file(s) called a buidout file.
 
-Hostout uses fabric files (see http://docs.fabfile.org). Create a fabric file.
+buildout recipe
+  A buildout file consists of parts each of which has a recipe which is in charge of installing a particular
+  piece of softare. 
+  
+deploy
+  Take a an application you are developing and move it to a host server for use. Often deployment will be
+  to a staging location for limited use in testing or production for mainstream use. Production, staging
+  and development often have different but related to buildouts and could involve different numbers of hosts
+  for each.
 
->>> write('fabfile.py',"""
-... def echo(cmdline1):
-...    hostout = get('hostout')
-...    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
-...    option1 = hostout.options['option1']
-...    run("echo '%s %s'" % (option1, cmdline1) )
-... """)
+host
+  In the context of this document this a machine or VPS running linux which you would like to deploy your
+  application to.
 
-Reference this file in the fabfiles option of your hostout part.
-
->>> write('buildout.cfg',
-... """
-... [buildout]
-... parts = host1
-...
-... [host1]
-... recipe = collective.hostout
-... host = 127.0.0.1:10022
-... fabfiles = fabfile.py
-... option1 = buildout
-... user = root
-... password = root
-...
-... """ )
->>> print system('bin/buildout -N')
-Uninstalling host1.
-Installing host1.
-
->>> print system('bin/hostout host1 echo "is cool"')
-Hostout: Running command 'echo' from 'fabfile.py'
-Logging into the following hosts as root:
-    127.0.0.1
-[127.0.0.1] run: echo 'buildout is cool'
-[127.0.0.1] out: CMD RECIEVED
-Done.
-
-
+fabric file
+  see fabric_
 
 Using builtin deploy command
 ****************************
@@ -121,9 +91,9 @@ Using builtin deploy command
 Often we have a buildout installed and working on a development machine and we need to get it working on
 one or many hosts quickly and easily. 
 
-First you will need a host. You'll need a linux with ssh access and sudo access. VPS and cloud hosting is
+First you will need a linux host. You'll need a linux with ssh access and sudo access. VPS and cloud hosting is
 now cheap and plentiful with options as low as $11USD a month. If you're not sure, pick a pay per hour 
-option pre-configured with Ubuntu and give it a go for example rackspace cloud.
+option pre-configured with Ubuntu and give it a go for example rackspacecloud or amazon EC2.
 
 Next you need a production buildout for your application. There are plenty available whether it be for Plone, 
 grok, django, BFG, pylons. Often a buildout will come in several files, one for development and one for production. 
@@ -214,8 +184,17 @@ postdeploy
     Hostout: Running command 'postdeploy' from '.../collective.hostout/collective/hostout/fabfile.py'
     ...
 
-
 We now have a live version of our buildout deployed to our host
+
+Bootstrapping
+-------------
+
+Hostout has a builtin bootstrap command that is called if the predeploy command doesn't find buildout
+installed at the remote path.
+Bootstrap not only installs buildout but
+also installs the correct version of python, development tools, needed libraries and creates users needed to
+manage the buildout. The buildin bootstrap may not work for all versions of linux so look
+for hostout plugins that match the distribution of linux you installed.
 
 Deploy options
 --------------
@@ -234,11 +213,11 @@ path
 
 pre-commands
   A series of shell commands executed as root before the buildout is run. You can use this 
-  to shut down your application. If this command fails it will be ignored.
+  to shut down your application. If these commands fail they will be ignored.
   
 post-commands
   A series of shell commands executed as root after the buildout is run. You can use this 
-  to startup your application. If this command fails it will be ignored.
+  to startup your application. If these commands fail they will be ignored.
 
 parts
   Runs the buildout with a parts value equal to this
@@ -249,6 +228,9 @@ include
 buildout-cache
   If you want to override the default location for the buildout-cache on the host
 
+python-version
+  The version of python to install during bootstrapping. Defaults to version
+  used in the local buildout. (UNIMPLIMENTED) 
 
 
 Using command plugins
@@ -417,6 +399,53 @@ Are you sure you want to do this [y/N]?
 Running repozo to create backup on remote server 'host1'
 ...
 
+
+Adding your own commands
+************************
+
+Hostout uses fabric files. Fabric is any easy way to write python that
+colls commands on a host over ssh. You can create your own fabric files as follows:
+
+
+>>> write('fabfile.py',"""
+... def echo(cmdline1):
+...    hostout = get('hostout')
+...    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
+...    option1 = hostout.options['option1']
+...    run("echo '%s %s'" % (option1, cmdline1) )
+... """)
+
+Reference this file in the fabfiles option of your hostout part.
+
+>>> write('buildout.cfg',
+... """
+... [buildout]
+... parts = host1
+...
+... [host1]
+... recipe = collective.hostout
+... host = 127.0.0.1:10022
+... fabfiles = fabfile.py
+... option1 = buildout
+... user = root
+... password = root
+...
+... """ )
+
+>>> print system('bin/buildout -N')
+Uninstalling host1.
+Installing host1.
+
+>>> print system('bin/hostout host1 echo "is cool"')
+Hostout: Running command 'echo' from 'fabfile.py'
+Logging into the following hosts as root:
+    127.0.0.1
+[127.0.0.1] run: echo 'buildout is cool'
+[127.0.0.1] out: CMD RECIEVED
+Done.
+
+
+
 Sharing hostout options
 ***********************
 
@@ -501,7 +530,7 @@ fabfiles
 Todo list
 *********
 
-- use latest fabbric and thus switch to python2.6
+- use latest fabric and thus switch to python2.6
 
 - finish ubuntu bootstrap
 
@@ -527,7 +556,7 @@ Todo list
 Credits
 *******
 
-Dylan Jay <software at pretaweb dot com>
+Dylan Jay ( software at pretaweb dot com )
 
 
 
