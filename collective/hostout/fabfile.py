@@ -55,6 +55,7 @@ def predeploy():
 
 def bootstrap():
     """Install python and users needed to run buildout"""
+    hostout = get('hostout')
     set(
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
