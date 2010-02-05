@@ -30,6 +30,8 @@ import re
 from zc.buildout.buildout import Buildout
 from paramiko import DSSKey, PKey
 from paramiko import SSHConfig
+from fabric.main import load_fabfile
+from fabric import api
 
 import time, random, md5
 from collective.hostout import relpath
@@ -256,16 +258,15 @@ class HostOut:
         cmd = None
         res = True
         ran = False
-        fabric.COMMANDS = {}
-        fabric.USER_COMMANDS = {}
-        sets = [(fabric.COMMANDS,"<DEFAULT>")]
+#        fabric.COMMANDS = {}
+#        fabric.USER_COMMANDS = {}
+        #sets = [(fabric.COMMANDS,"<DEFAULT>")]
+	sets = []
         for fabfile in self.fabfiles:
-            fabric.COMMANDS = {}
-            fabric.USER_COMMANDS = {}
 
-            fabric._load_default_settings()
-            fabric.load(fabfile, fail='warn')
-            sets.append((fabric.COMMANDS,fabfile))
+            #fabric._load_default_settings()
+	    commands = load_fabfile(fabfile)
+            sets.append((commands,fabfile))
         if command is None:
             allcmds = {}
             for commands,fabfile in sets:
@@ -280,21 +281,21 @@ class HostOut:
                     cmd = commands.get(command, None)
                     if cmd is None:
 	                    continue
-                    fabric.USER_COMMANDS = {}
-                    fabric.COMMANDS = commands
-                    fabric._load_default_settings()
+                    #fabric.USER_COMMANDS = {}
+                    #fabric.COMMANDS = commands
+                    #fabric._load_default_settings()
                     print "Hostout: Running command '%s' from '%s'" % (command, fabfile)
-                    fabric.set(hostout=self)
+                    api.env['hostout'] = self
                     if self.password:
-                        fabric.set(fab_password=self.password)
+                        api.env['fab_password']=self.password
                     if self.identityfile:
-                        fabric.set(fab_key_filename=self.identityfile)
+                        api.env['fab_key_filename']=self.identityfile
 
-                    fabric.set(
+                    api.env.update( dict(
                                fab_user=self.user,
                                fab_hosts=[self.host],
 			       fab_port=self.port,
-                               )
+                               ))
 
                     if cmd is not None:
                         ran = True
@@ -307,7 +308,8 @@ class HostOut:
                             res = True
 
             finally:
-                fabric._disconnect()
+                #disconnect_all()
+		pass
             print("Done.")
         except SystemExit:
             # a number of internal functions might raise this one.
