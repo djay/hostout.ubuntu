@@ -23,13 +23,16 @@ from os.path import dirname, abspath
 from pkg_resources import resource_string, resource_filename
 
 
+def add(list, item):
+    return '\n'.join( list.split() + [item] )
 
 class Recipe:
     """collective.hostout recipe adds pre and post commands to run supervisor"""
 
     def __init__(self, buildout, name, options):
         self.name, self.options, self.buildout = name, options, buildout
-        self.options['fabfiles'] = fabfile = resource_filename(__name__, 'fabfile.py')
+        fabfile = resource_filename(__name__, 'fabfile.py')
+        self.options['fabfiles'] = add( self.options.get('fabfiles',''), fabfile )
 
 
     def install(self):

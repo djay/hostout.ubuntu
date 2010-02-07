@@ -1,5 +1,6 @@
 import os
 import os.path  #import os.path.join, os.path.basename, os.path.dirname
+from fabric import api
 
 initd = """
 #!/bin/sh
@@ -58,7 +59,7 @@ exit $REVAL
 
 def installonstartup():
     """Installs supervisor into your init.d scripts in order to ensure that supervisor is started on boot"""
-    hostout = get('hostout')
+    hostout = api.env.hostout
 
     # based on
     # http://www.webmeisterei.com/friessnegger/2008/06/03/control-production-buildouts-with-supervisor/
@@ -70,7 +71,7 @@ def installonstartup():
 
 
 def predeploy():
-    hostout = get('hostout')
+    hostout = api.env.hostout
     supervisorshutdown()
     if hostout.options.get('install-on-startup') is not None:
         installonstartup()
@@ -80,25 +81,25 @@ def postdeploy():
     
 def supervisorstartup():
     """Start the supervisor daemon"""
-    hostout = get('hostout')
+    hostout = api.env.hostout
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
-    sudo("%s/%sd"% (bin,supervisor))
-    sudo("%s/%sctl status"% (bin,supervisor))
+    api.sudo("%s/%sd"% (bin,supervisor))
+    api.sudo("%s/%sctl status"% (bin,supervisor))
 
 def supervisorshutdown():
     """Shutdown the supervisor daemon"""
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
-    sudo("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
+    api.sudo("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
 
 def supervisorctl(*args):
     """Takes command line arguments and runs supervisorctl on the remote host"""
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
-    sudo("%s/%sctl %s"% (bin,supervisor,' '.os.path.join(args)) )
+    api.run("%s/%sctl %s"% (bin,supervisor,' '.os.path.join(args)) )
 
 
 

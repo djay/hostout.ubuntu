@@ -1,6 +1,7 @@
 import os
 import os.path
 from fabric import api
+from fabric.api import sudo, run, get, put
 
 def _createuser(buildout_user='buildout'):
     """Creates a user account to run the buildout in"""
@@ -48,21 +49,27 @@ def predeploy():
 
     #run('export http_proxy=localhost:8123') # TODO get this from setting
     
-    print api.env
+    hostout = api.env['hostout']
     try:
         run('test -f %s/bin/buildout' % api.env.path)
     except:
         bootstrap()
 
+    for cmd in hostout.getPreCommands():
+        sudo('sh -c "%s"'%cmd)
+
+    #Login as user plone
+    api.env['user'] = api.env['effective-user']
+
 def bootstrap():
     """Install python and users needed to run buildout"""
     hostout = api.env['hostout']
 
-    effectiveuser=hostout.effective_user
-    buildout_dir=hostout.remote_dir
-    install_dir=os.path.split(hostout.remote_dir)[0]
-    instance=os.path.split(hostout.remote_dir)[1]
-    download_cache=hostout.getDownloadCache()
+#    effectiveuser=hostout.effective_user
+#    buildout_dir=hostout.remote_dir
+#    install_dir=os.path.split(hostout.remote_dir)[0]
+#    instance=os.path.split(hostout.remote_dir)[1]
+#    download_cache=hostout.getDownloadCache()
 
 
     unified='Plone-3.2.1r3-UnifiedInstaller'
@@ -94,67 +101,52 @@ def bootstrap():
           'sudo chown -R $(effectiveuser) $(install_dir)/$(instance))'
           )
 
-    for cmd in hostout.getPreCommands():
-        sudo('sh -c "%s"'%cmd)
-
 
 
 def uploadeggs():
     """Any develop eggs are released as eggs and uploaded to the server """
     
     hostout = api.env['hostout']
-    set(
-        effectiveuser=hostout.effective_user,
-        buildout_dir=hostout.remote_dir,
-        install_dir=os.path.split(hostout.remote_dir)[0],
-        instance=os.path.split(hostout.remote_dir)[1],
-        download_cache=hostout.getDownloadCache()
-    )
+
+#    effectiveuser=hostout.effective_user
+#    buildout_dir=hostout.remote_dir
+#    install_dir=os.path.split(hostout.remote_dir)[0]
+#    instance=os.path.split(hostout.remote_dir)[1]
+#    download_cache=hostout.getDownloadCache()
 
     #need to send package. cycledown servers, install it, run buildout, cycle up servers
 
+    dl = hostout.getDownloadCache()
+    contents = api.run('ls %(dl)s'%locals())
+
     for pkg in hostout.localEggs():
-        tmp = os.path.join('/tmp', os.path.basename(pkg))
-        tgt = os.path.join(hostout.getDownloadCache(), 'dist', os.path.basename(pkg))
-        try:
-            sudo('test -f %s'%tgt)
-        except:
-            put(pkg, tmp)
-            sudo("mv  -f %s %s"%(tmp,tgt))
-            sudo('chmod a+r %s' % tgt)
+        if pkg not in contents:
+            tmp = os.path.join('/tmp', os.path.basename(pkg))
+            tgt = os.path.join(hostout.getDownloadCache(), 'dist', os.path.basename(pkg))
+            api.put(pkg, tmp)
+            api.run("mv -f %(tmp)s %(tgt)s && chmod a+r %(tgt)s" % locals() )
 
 def uploadbuildout():
     """Upload buildout pinned to local picked versions + uploaded eggs """
-    hostout = get('hostout')
-    set(
-        effectiveuser=hostout.effective_user,
-        buildout_dir=hostout.remote_dir,
-        install_dir=os.path.split(hostout.remote_dir)[0],
-        instance=os.path.split(hostout.remote_dir)[1],
-        download_cache=hostout.getDownloadCache()
-    )
+    hostout = api.env.hostout
 
-    package=hostout.getHostoutPackage()
+    package = hostout.getHostoutPackage()
     tmp = os.path.join('/tmp', os.path.basename(package))
-    tgt = os.path.join(hostout.getDownloadCache(), os.path.basename(package))
+    tgt = os.path.join(hostout.getDownloadCache(), 'dist', os.path.basename(package))
 
-    try:
-        sudo('test -f %s'%tgt)
-    except:
-        put(package, tmp)
-        sudo("mv %s %s"%(tmp,tgt))
-        sudo('chown $(effectiveuser) %s' % tgt)
+    #api.env.warn_only = True
+    if api.run("test -f %(tgt)s || echo 'None'" %locals()) == 'None' :
+        api.put(package, tmp)
+        api.run("mv %(tmp)s %(tgt)s" % locals() )
+        #sudo('chown $(effectiveuser) %s' % tgt)
 
-    set(
-        #fab_key_filename="buildout_dsa",
-        dist_dir=hostout.dist_dir,
-        install_dir=hostout.remote_dir,
-        hostout_file=hostout.getHostoutFile(),
-    )
 
-   # sudo('ls -al versions')
-    #need a way to make sure ownership of files is ok
-    sudo('tar --no-same-permissions --no-same-owner --overwrite --owner $(effectiveuser) -xvf %s --directory=$(install_dir)' % tgt)
+    effectiveuser=hostout.effective_user
+    install_dir=hostout.remote_dir
+    api.run('tar --no-same-permissions --no-same-owner --overwrite '
+         '--owner %(effectiveuser)s -xvf %(tgt)s '
+         '--directory=%(install_dir)s' % locals())
+    
 #    if hostout.getParts():
 #        parts = ' '.jos.path.oin(hostout.getParts())
  #       sudo('sudo -u $(effectiveuser) sh -c "cd $(install_dir) && bin/buildout -c $(hostout_file) install %s"' % parts)
@@ -165,19 +157,22 @@ def uploadbuildout():
 def buildout():
     """Run the buildout on the remote server """
 
-    hostout = get('hostout')
-    set(
-        effectiveuser=hostout.effective_user,
-        buildout_dir=hostout.remote_dir,
-        install_dir=os.path.split(hostout.remote_dir)[0],
-    )
-    set(
-        #fab_key_filename="buildout_dsa",
-        dist_dir=hostout.dist_dir,
-        install_dir=hostout.remote_dir,
-        hostout_file=hostout.getHostoutFile(),
-    )
-    sudo('sudo -u $(effectiveuser) sh -c "export HOME=~$(effectiveuser) && cd $(install_dir) && bin/buildout -c $(hostout_file)"')
+    hostout = api.env.hostout
+#    set(
+#        effectiveuser=hostout.effective_user,
+#        buildout_dir=hostout.remote_dir,
+#        install_dir=os.path.split(hostout.remote_dir)[0],
+#    )
+#    set(
+#        #fab_key_filename="buildout_dsa",
+#        dist_dir=hostout.dist_dir,
+#        install_dir=hostout.remote_dir,
+#    )
+    hostout_file=hostout.getHostoutFile()
+    api.env.user = api.env['effective-user']
+    api.env.cwd = hostout.remote_dir
+    api.run('bin/buildout -c %(hostout_file)s' % locals())
+    #api.sudo('sudo -u $(effectiveuser) sh -c "export HOME=~$(effectiveuser) && cd $(install_dir) && bin/buildout -c $(hostout_file)"')
 
 #    run('cd $(install_dir) && $(reload_cmd)')
 #    sudo('chmod 600 .installed.cfg')
@@ -190,17 +185,10 @@ def buildout():
 def postdeploy():
     """Perform any final plugin tasks """
     
-    hostout = get('hostout')
-    set(
-        effectiveuser=hostout.effective_user,
-        buildout_dir=hostout.remote_dir,
-        install_dir=os.path.split(hostout.remote_dir)[0],
-        instance=os.path.split(hostout.remote_dir)[1],
-        download_cache=hostout.getDownloadCache()
-    )
-
+    hostout = api.env.get('hostout')
+ 
     for cmd in hostout.getPostCommands():
-        sudo('sh -c "%s"'%cmd)
+        api.run('sh -c "%s"'%cmd)
 
 def run(*cmd):
     """Execute cmd on remote as login user """

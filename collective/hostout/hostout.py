@@ -32,6 +32,7 @@ from paramiko import DSSKey, PKey, RSAKey
 from paramiko import SSHConfig
 from fabric.main import load_fabfile
 from fabric import api
+from fabric.state import output
 
 import time, random, md5
 from collective.hostout import relpath
@@ -219,7 +220,7 @@ class HostOut:
             key.write_private_key_file(keyfile)
         else:
             key = RSAKey.from_private_key_file(keyfile)
-        return keyfile, key.get_base64()
+        return keyfile, "ssh-rsa %s hostout@hostout" % key.get_base64()
 
     def readsshconfig(self):
         config = os.path.expanduser('~/.ssh/config')
@@ -252,15 +253,11 @@ class HostOut:
 
 
 
-    def runfabric(self, command=None, args=[]):
+    def runfabric(self, cmds=None, cmdargs=[]):
         "return all commands if none found to run"
 
-        cmds = {}
-        cmd = None
         res = True
         ran = False
-#        fabric.COMMANDS = {}
-#        fabric.USER_COMMANDS = {}
         #sets = [(fabric.COMMANDS,"<DEFAULT>")]
 	sets = []
         for fabfile in self.fabfiles:
@@ -268,7 +265,7 @@ class HostOut:
             #fabric._load_default_settings()
 	    commands = load_fabfile(fabfile)
             sets.append((commands,fabfile))
-        if command is None:
+        if cmds is None:
             allcmds = {}
             for commands,fabfile in sets:
                 allcmds.update(commands)
@@ -286,46 +283,30 @@ class HostOut:
 		   port=self.port,
 		   ))
 
-
-        try:
-            try:
-                for commands, fabfile in sets:
-                    cmds.update(commands)
-                    cmd = commands.get(command, None)
-                    if cmd is None:
-	                    continue
-                    #fabric.USER_COMMANDS = {}
-                    #fabric.COMMANDS = commands
-                    #fabric._load_default_settings()
-                    print "Hostout: Running command '%s' from '%s'" % (command, fabfile)
+	for cmd in cmds:
+	    funcs = [(set.get(cmd),fabfile) for set,fabfile in sets if cmd in set]
+	    if not funcs:
+		host = api.env.host
+		print >> sys.stderr, "'%(cmd)s' is not a valid command for host '%(host)s'"%locals()
+		break
+	    for func,fabfile in funcs:
+                print "Hostout: Running command '%(cmd)s' from '%(fabfile)s'" % locals()
 		    
-		    api.env['host'] = api.env.hosts[0]
-		    api.env['host_string']="%(user)s@%(host)s:%(port)s"%api.env
- 
-                    if cmd is not None:
-                        ran = True
-                        res = cmd(*args)
-                        if res not in [None,True]:
-                            print >> sys.stderr, "Hostout aborted"
-                            res = False
-                            break
-                        else:
-                            res = True
+		api.env['host'] = api.env.hosts[0]
+		api.env['host_string']="%(user)s@%(host)s:%(port)s"%api.env
+		output.debug = True
+                ran = True
+		if cmd == cmds[-1]:
+		    res = func(*cmdargs)
+		else:
+		    res = func()
+                if res not in [None,True]:
+                    print >> sys.stderr, "Hostout aborted"
+                    res = False
+                    break
+                else:
+                    res = True
 
-            finally:
-                #disconnect_all()
-		pass
-            print("Done.")
-        except SystemExit:
-            # a number of internal functions might raise this one.
-            raise
-        except KeyboardInterrupt:
-            print("Stopped.")
-        #    except:
-        #        sys.excepthook(*sys.exc_info())
-        #        # we might leave stale threads if we don't explicitly exit()
-        #        return False
-        return res
 
 #    def genhostout(self):
 #        """ generate a new buildout file which pins versions and uses our deployment distributions"""
@@ -619,19 +600,25 @@ def main(cfgfile, args):
 	    else:
 	        print >> sys.stderr, ''
     else:
-        for host, hostout in hosts:
-            hostout.readsshconfig()
-            for cmd in cmds:
-                if cmd == cmds[-1]:
-                    res = hostout.runfabric(cmd, cmdargs)
-                else:
-                    res = hostout.runfabric(cmd)
-                if res == True:
-                    continue
-                elif res == False:
-                    break
-                else:
-                    print >> sys.stderr, "'%s' is not a valid command for host '%s' - %s"%(cmd,host,res.keys())
+        try:
+	    for host, hostout in hosts:
+	        hostout.readsshconfig()
+		hostout.runfabric(cmds)
+            print("Done.")
+        except SystemExit:
+            # a number of internal functions might raise this one.
+            raise
+        except KeyboardInterrupt:
+            print("Stopped.")
+        #    except:
+        #        sys.excepthook(*sys.exc_info())
+        #        # we might leave stale threads if we don't explicitly exit()
+        #        return False
+        finally:
+            #disconnect_all()
+	    pass
+
+
 
 def is_task(tup):
     """
@@ -678,7 +665,7 @@ def load_fabfile(filename, **kwargs):
     captured = {}
     commands = {}
     #execfile(filename, _new_namespace(), captured)
-    imported = imp.load_source('fabfile', filename)
+    imported = imp.load_source(filename.replace('/','.'), filename)
     return dict(filter(is_task, vars(imported).items()))
 
 
