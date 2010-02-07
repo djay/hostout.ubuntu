@@ -28,7 +28,7 @@ from os.path import join, exists
 from itertools import chain
 import re
 from zc.buildout.buildout import Buildout
-from paramiko import DSSKey, PKey
+from paramiko import DSSKey, PKey, RSAKey
 from paramiko import SSHConfig
 from fabric.main import load_fabfile
 from fabric import api
@@ -108,6 +108,7 @@ class HostOut:
         self.versions_part = opt.get('versions','versions')
         self.parts = [p.strip() for p in opt['parts'].split() if p.strip()]
         self.buildout_cache = opt.get('buildout-cache','')
+	opt['download_cache']= "%s/%s" % (self.buildout_cache, 'downloads')
         if not self.buildout_cache:
             install_base = os.path.dirname(self.getRemoteBuildoutPath())
             self.buildout_cache = os.path.join(install_base,'buildout-cache')
@@ -211,14 +212,14 @@ class HostOut:
         return self.hostout_package
 
 
-    def getDSAKey(self):
-        keyfile = os.path.abspath(os.path.join(self.buildout_location,'hostout_dsa'))
+    def getIdentityKey(self):
+        keyfile = os.path.abspath(os.path.join(self.getLocalBuildoutPath(),'hostout_rsa'))
         if not os.path.exists(keyfile):
-            key = DSSKey.generate()
+            key = RSAKey.generate(1024)
             key.write_private_key_file(keyfile)
         else:
-            key = PKey.from_private_key_file(DSSKey, keyfile)
-        return keyfile, str(key)
+            key = RSAKey.from_private_key_file(keyfile)
+        return keyfile, key.get_base64()
 
     def readsshconfig(self):
         config = os.path.expanduser('~/.ssh/config')
@@ -272,7 +273,19 @@ class HostOut:
             for commands,fabfile in sets:
                 allcmds.update(commands)
             return allcmds
-        
+	api.env['hostout'] = self
+	api.env.update( self.options )
+	if self.password:
+	    api.env['password']=self.password
+	if self.identityfile:
+	    api.env['key_filename']=self.identityfile
+
+	api.env.update( dict(
+		   user=self.user,
+		   hosts=[self.host],
+		   port=self.port,
+		   ))
+
 
         try:
             try:
@@ -285,18 +298,10 @@ class HostOut:
                     #fabric.COMMANDS = commands
                     #fabric._load_default_settings()
                     print "Hostout: Running command '%s' from '%s'" % (command, fabfile)
-                    api.env['hostout'] = self
-                    if self.password:
-                        api.env['fab_password']=self.password
-                    if self.identityfile:
-                        api.env['fab_key_filename']=self.identityfile
-
-                    api.env.update( dict(
-                               fab_user=self.user,
-                               fab_hosts=[self.host],
-			       fab_port=self.port,
-                               ))
-
+		    
+		    api.env['host'] = api.env.hosts[0]
+		    api.env['host_string']="%(user)s@%(host)s:%(port)s"%api.env
+ 
                     if cmd is not None:
                         ran = True
                         res = cmd(*args)
@@ -628,6 +633,53 @@ def main(cfgfile, args):
                 else:
                     print >> sys.stderr, "'%s' is not a valid command for host '%s' - %s"%(cmd,host,res.keys())
 
+def is_task(tup):
+    """
+    Takes (name, object) tuple, returns True if it's a non-Fab public callable.
+    """
+    name, func = tup
+    return (
+        callable(func)
+        and not name.startswith('_')
+    )
+
+# Fabric load_fabfile uses __import__ which doesn't always load from path    
+import imp
+def load_fabfile(filename, **kwargs):
+    """
+    Load up the given fabfile.
+    
+    This loads the fabfile specified by the `filename` parameter into fabric
+    and makes its commands and other functions available in the scope of the 
+    current fabfile.
+    
+    If the file has already been loaded it will not be loaded again.
+    
+    May take an additional `fail` keyword argument with one of these values:
+    
+     * ignore - do nothing on failure
+     * warn - print warning on failure
+     * abort - terminate fabric on failure
+    
+    Example:
+    
+        load("conf/production-settings.py")
+    
+    """
+    if not os.path.exists(filename):
+        _fail(kwargs, "Load failed:\n" + _indent(
+            "File not found: " + filename))
+        return
+    
+    #if filename in _LOADED_FABFILES:
+    #    return
+    #_LOADED_FABFILES.add(filename)
+    
+    captured = {}
+    commands = {}
+    #execfile(filename, _new_namespace(), captured)
+    imported = imp.load_source('fabfile', filename)
+    return dict(filter(is_task, vars(imported).items()))
 
 
 def uuid( *args ):

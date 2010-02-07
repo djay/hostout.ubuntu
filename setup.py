@@ -47,7 +47,8 @@ setup(
     install_requires = ['zc.buildout',
                         'zc.recipe.egg',
                         'setuptools',
-                        'Fabric', 
+                        'Fabric',
+                        'paramiko'
                         ],
     entry_points = {'zc.buildout':
                     ['default = collective.hostout:Recipe',

@@ -1,9 +1,10 @@
 import os
-from os.path import join, basename, dirname
+import os.path
+from fabric import api
 
 
 def bootstrap():
-    hostout = get('hostout')
+    hostout = api.env.get('hostout')
     #Install and Update Dependencies
 
     sudo('apt-get update')

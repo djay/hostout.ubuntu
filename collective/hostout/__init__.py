@@ -25,6 +25,7 @@ from os.path import dirname, abspath
 import ConfigParser
 from zc.buildout.buildout import Options, _recipe, _install_and_load
 import pkg_resources
+import sys
 
 
 
@@ -84,6 +85,9 @@ class Recipe:
         self.options['scripts'] = 'hostout'
         self.options['eggs'] = '\n'.join(self.options.get('eggs','').split() + ['collective.hostout'])
         self.script = zc.recipe.egg.Scripts(buildout, options['recipe'], options)
+
+        version = '.'.join([str(i) for i in sys.version_info])
+        self.options['python-version'] = options.get('python-version', version)
 
 
     def extends(self, options, seen):

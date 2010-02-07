@@ -30,8 +30,6 @@ class Recipe:
     def __init__(self, buildout, name, options):
         self.name, self.options, self.buildout = name, options, buildout
         self.options['fabfiles'] = fabfile = resource_filename(__name__, 'fabfile.py')
-        version = '.'.join(sys.version_info)
-        self.options['python-version'] = options.get('python-version', version)
 
 
     def install(self):

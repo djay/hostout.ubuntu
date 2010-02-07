@@ -1,5 +1,6 @@
 import os
 import os.path
+from fabric import api
 
 def _createuser(buildout_user='buildout'):
     """Creates a user account to run the buildout in"""
@@ -46,46 +47,41 @@ def predeploy():
     """Install buildout and its dependencies if needed. Hookpoint for plugins"""
 
     #run('export http_proxy=localhost:8123') # TODO get this from setting
-    hostout = get('hostout')
     
+    print api.env
     try:
-        run('test -f %s/bin/buildout' % hostout.remote_dir)
+        run('test -f %s/bin/buildout' % api.env.path)
     except:
         bootstrap()
 
 def bootstrap():
     """Install python and users needed to run buildout"""
-    set(
-        effectiveuser=hostout.effective_user,
-        buildout_dir=hostout.remote_dir,
-        install_dir=os.path.split(hostout.remote_dir)[0],
-        instance=os.path.split(hostout.remote_dir)[1],
-        download_cache=hostout.getDownloadCache()
-    )
+    hostout = api.env['hostout']
 
-    set(dist_dir = hostout.getDownloadCache(),
-        unified='Plone-3.2.1r3-UnifiedInstaller',
-        unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz',
-        )
+    effectiveuser=hostout.effective_user
+    buildout_dir=hostout.remote_dir
+    install_dir=os.path.split(hostout.remote_dir)[0]
+    instance=os.path.split(hostout.remote_dir)[1]
+    download_cache=hostout.getDownloadCache()
 
-    sudo('mkdir -p $(dist_dir)/dist '+
-         '&& sudo chmod -R a+rw  $(dist_dir)'
-         '')
-    sudo(('mkdir -p %(dc)s '+
-         '&& sudo chmod -R a+rw  %(dc)s'
-         '') % dict(dc=hostout.getEggCache()))
+
+    unified='Plone-3.2.1r3-UnifiedInstaller'
+    unified_url='http://launchpad.net/plone/3.2/3.2.1/+download/Plone-3.2.1r3-UnifiedInstaller.tgz'
+
+    sudo('mkdir -p %(dc)s/dist && sudo chmod -R a+rw  %(dc)s'%dict(dc=api.env.download_cache) )
+    sudo(('mkdir -p %(dc)s && sudo chmod -R a+rw  %(dc)s') % dict(dc=hostout.getEggCache()) )
 
     #install prerequsites
     sudo('which g++ || (sudo apt-get -ym update && sudo apt-get install -ym build-essential libssl-dev libreadline5-dev) || echo "not ubuntu"')
 
     #Download the unified installer if we don't have it
-    sudo('test -f $(buildout_dir)/bin/buildout || '+
-         'test -f $(dist_dir)/$(unified).tgz || '+
+    sudo('test -f %(buildout_dir)s/bin/buildout || '+
+         'test -f %(dist_dir)s/%(unified)s.tgz || '+
          '( cd /tmp && '+
-         'wget  --continue $(unified_url) '+
-         '&& sudo mv /tmp/$(unified).tgz $(dist_dir)/$(unified).tgz '+
-#         '&& sudo chown $(effectiveuser) $(dist_dir)/$(unified).tgz '+
-        ')'
+         'wget  --continue %(unified_url)s '+
+         '&& sudo mv /tmp/%(unified)s.tgz %(dist_dir)s/%(unified)s.tgz '+
+#         '&& sudo chown %(effectiveuser)s %(dist_dir)s/%(unified)s.tgz '+
+        ')' % dict(unified=unified, unified_url=unified_url, buildout_dir=api.env.path)
          )
     # untar and run unified installer
     sudo('test -f $(buildout_dir)/bin/buildout || '+
@@ -106,7 +102,7 @@ def bootstrap():
 def uploadeggs():
     """Any develop eggs are released as eggs and uploaded to the server """
     
-    hostout = get('hostout')
+    hostout = api.env['hostout']
     set(
         effectiveuser=hostout.effective_user,
         buildout_dir=hostout.remote_dir,
@@ -208,11 +204,9 @@ def postdeploy():
 
 def run(*cmd):
     """Execute cmd on remote as login user """
-    hostout = get('hostout')
-    run('sh -c "cd %s && %s"'%(hostout.remote_dir,' '.join(cmd)))
+    api.run('sh -c "cd %s && %s"'%(api.env.path,' '.join(cmd)))
 
 def sudo(*cmd):
     """Execute cmd on remote as root user """
-    hostout = get('hostout')
-    sudo('sh -c "cd %s && %s"'%(hostout.remote_dir,' '.join(cmd)))
+    api.sudo('sh -c "cd %s && %s"'%(api.env.path,' '.join(cmd)))
 
