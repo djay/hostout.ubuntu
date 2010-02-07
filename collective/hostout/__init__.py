@@ -112,7 +112,8 @@ class Recipe:
                 recipe_class = _install_and_load(reqs, 'zc.buildout', entry, self.buildout)
                 recipe = recipe_class(self.buildout, self.name, self.options)
                 self.subrecipes.append(recipe)
-                self.options['eggs'] = '\n'.join(self.options.get('eggs','').split() + [extension])
+                egg = extension.split(':')[0]
+                self.options['eggs'] = '\n'.join(self.options.get('eggs','').split() + [egg])
 
                 continue
             else:
