@@ -349,7 +349,8 @@ class HostOut:
         config.read([path])
         if 'buildout' not in config.sections():
             config.add_section('buildout')
-        files = [relpath(file, base) for file in self.buildout_cfg]
+	files = [self.options['versionsfile']] + self.buildout_cfg
+        files = [relpath(file, base) for file in files]
 
         config.set('buildout', 'extends', ' '.join(files))
         config.set('buildout', 'develop', '')
@@ -397,7 +398,7 @@ class Packages:
 
         self.buildout_location = config.get('buildout', 'location')
         self.dist_dir = config.get('buildout','dist_dir')
-        self.versions = dict(config.items('versions'))
+#        self.versions = dict(config.items('versions'))
         self.tar = None
         dist_dir = os.path.abspath(os.path.join(self.buildout_location,self.dist_dir))
         if not os.path.exists(dist_dir):
@@ -506,7 +507,7 @@ class Packages:
         config.optionxform = str
         config.read([versions_file])
         specs = {}
-        specs.update(self.versions)
+#        specs.update(self.versions)
         #have to use lower since eggs are case insensitive
         specs.update(dict([(p,v) for p,v,e in self.local_eggs.values()]))
         config.set('buildout', 'versions', part)
@@ -609,6 +610,8 @@ def main(cfgfile, args):
 	    print >> sys.stderr, '  ', name.ljust(max_name_len),
 	    if fn.__doc__:
 		print >> sys.stderr, ':', fn.__doc__.splitlines()[0]
+	    elif name == 'deploy':
+		print >> sys.stderr, ':', 'predeploy, uploadeggs, uploadbuildout, buildout and then postdeploy'
 	    else:
 	        print >> sys.stderr, ''
     else:

@@ -40,18 +40,20 @@ Each host refers to the name of a part with recipe=collective.hostout in your bu
 Each host corresponds to a host and remote path which is the default location for commands to act on.
 
 >>> print system('bin/hostout host1')
-    cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
-    Valid commands are:
-       bootstrap        : Install python and users needed to run buildout
-       buildout         : Run the buildout on the remote server
-       deploy           : predeploy, uploadeggs, uploadbuildout, buildout and then postdeploy
-       postdeploy       : Perform any final plugin tasks
-       predeploy        : Install buildout and its dependencies if needed. Hookpoint for plugins
-       resetpermissions : Ensure ownership and permissions are correct on buildout and cache
-       run              : Execute cmd on remote as login user
-       sudo             : Execute cmd on remote as root user
-       uploadbuildout   : Upload buildout pinned to local picked versions + uploaded eggs
-       uploadeggs       : Any develop eggs are released as eggs and uploaded to the server
+cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
+Valid commands are:
+   bootstrap        : Install python and users needed to run buildout
+   buildout         : Run the buildout on the remote server
+   deploy           : predeploy, uploadeggs, uploadbuildout, buildout and then postdeploy
+   postdeploy       : Perform any final plugin tasks
+   predeploy        : Install buildout and its dependencies if needed. Hookpoint for plugins
+   resetpermissions : Ensure ownership and permissions are correct on buildout and cache
+   run              : Execute cmd on remote as login user
+   sudo             : Execute cmd on remote as root user
+   uploadbuildout   : Upload buildout pinned to local picked versions + uploaded eggs
+   uploadeggs       : Any develop eggs are released as eggs and uploaded to the server
+<BLANKLINE>
+
 
 >>> print system('bin/hostout host1 run pwd')
 Hostout: Running command 'run' from '.../fabfile.py'
@@ -137,12 +139,21 @@ to our buildout as well.
 ... user = root
 ... password = root
 ...
-... """ % globals())
+... """ )
 >>> print system('bin/buildout -N')
 Develop: '.../example'
 Uninstalling host1.
 Installing example.
 Installing host1.
+
+Hostout will record the versions of eggs in a local file
+
+>>> print open('hostoutversions.cfg').read()
+[versions]
+collective.hostout = 0.9.4
+<BLANKLINE>
+# Required by collective.hostout 0.9.4
+Fabric = ...
 
 
 The deploy command will login to your host and setup a buildout environment if it doesn't exist, upload
@@ -185,6 +196,21 @@ postdeploy
     ...
 
 We now have a live version of our buildout deployed to our host
+
+The buildout file used on the host pins pins the uploaded eggs
+
+    >>> print open('host1.cfg').read()
+    [buildout]
+    develop = 
+    eggs-directory = /var/lib/plone/buildout-cache/eggs
+    versions = versions
+    newest = true
+    extends = buildout.cfg hostoutversions.cfg
+    download-cache = /var/lib/plone/buildout-cache/downloads
+    <BLANKLINE>
+    [versions]
+    example = 0.0.0dev-...
+
 
 Bootstrapping
 -------------
@@ -434,7 +460,10 @@ Reference this file in the fabfiles option of your hostout part.
 
 >>> print system('bin/buildout -N')
 Uninstalling host1.
+Uninstalling example.
+Uninstalling _mr.developer.
 Installing host1.
+
 
 >>> print system('bin/hostout host1 echo "is cool"')
 Hostout: Running command 'echo' from 'fabfile.py'
@@ -490,8 +519,6 @@ between multiple hostout definitions
 
 >>> print system('bin/buildout -N')
     Uninstalling host1.
-    Uninstalling example.
-    Uninstalling _mr.developer.
     Installing hostout.
     Installing staging.
     Installing prod.
