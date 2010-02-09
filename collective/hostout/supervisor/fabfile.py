@@ -98,7 +98,7 @@ def supervisorctl(*args):
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
-    sudo("%s/%sctl %s"% (bin,supervisor,' '.os.path.join(args)) )
+    sudo("%s/%sctl %s"% (bin,supervisor,' '.join(args)) )
 
 
 
