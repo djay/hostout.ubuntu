@@ -76,6 +76,7 @@ class Recipe:
         self.options.setdefault('pre-commands', self.options.get('stop_cmd', ''))
         self.options.setdefault('include', self.options.get('extra_config',''))
         self.options.setdefault('parts','')
+        self.options.setdefault('versionsfile','hostoutversions.cfg')
         default_path = '~%s/buildout'%self.options['user']
         self.options.setdefault('path', self.options.get('remote_path','/var/lib/plone/%s'%name))
 #        self.extra_config = [s.strip() for s in self.options.get('extra_config','').split('\n') if s.strip()]
@@ -183,12 +184,7 @@ class Recipe:
         config.set('buildout','location',self.buildout_dir)
 
         if self.options.get('mainhostout') is not None:
-            if config.has_section('versions'):
-                config.remove_section('versions')
-            config.add_section('versions')
-            for pkg,info in sorted(self.getVersions().items()):
-                    version,deps = info
-                    config.set('versions',pkg,version)
+            self.writeVersions()
             config.set('buildout', 'bin-directory', self.buildout.get('buildout').get('directory'))
             if self.options['dist_dir']:
                 config.set('buildout','dist_dir', self.options['dist_dir'])
@@ -238,17 +234,42 @@ class Recipe:
                     versions[dist.project_name] = (dist.version,dep)
         spec = ""
         return versions
-        for project_name,info in versions.items():
+
+    def writeVersions(self):
+        versions = self.getVersions()
+        
+        f = open(self.options['versionsfile'], "w")
+        
+        f.write("[%(versions)s]\n" % self.options)
+        for project_name,info in sorted(versions.items()):
             version,deps = info
-            spec+='\n'
-#            for dep in deps:
-#                spec+='# Required by %s==%s\n' % (dep, 'Not Implemented') #versions[dep][0])
+            if [d for d in deps if d != project_name]:
+               continue 
+            if version != '0.0':
+                spec='%s = %s' % (project_name,version)+'\n'
+            else:
+                spec='#%s = %s' % (project_name,version)+'\n'
+            f.write( spec )
+
+        for project_name,info in sorted(versions.items()):
+            version,deps = info
+            spec='\n'
+            deps = [d for d in deps if d != project_name]
+            if not deps:
+               continue 
+            for dep in sorted(deps):
+                if project_name == dep:
+                    continue
+                dver, ddeps = versions.get(dep)
+                spec+='# Required by %s %s\n' % (dep, dver) #versions[dep][0])
             if version != '0.0':
                 spec+='%s = %s' % (project_name,version)+'\n'
-#            else:
-#                spec+='#%s = %s' % (project_name,version)+'\n'
-        return spec
-
+            else:
+                spec+='#%s = %s' % (project_name,version)+'\n'
+                
+            f.write(spec)
+        f.close()
+        
 
 # relpath.py
 # R.Barran 30/08/2004

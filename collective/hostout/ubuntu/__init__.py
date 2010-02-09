@@ -21,7 +21,7 @@ from os.path import join
 import os
 from os.path import dirname, abspath
 from pkg_resources import resource_string, resource_filename
-
+import sys
 
 def add(list, item):
     return '\n'.join( list.split() + [item] )

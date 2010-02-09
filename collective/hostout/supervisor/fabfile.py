@@ -92,14 +92,14 @@ def supervisorshutdown():
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
-    api.sudo("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
+    api.run("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
 
 def supervisorctl(*args):
     """Takes command line arguments and runs supervisorctl on the remote host"""
     hostout = get('hostout')
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
-    api.run("%s/%sctl %s"% (bin,supervisor,' '.os.path.join(args)) )
+    api.run("%s/%sctl %s"% (bin,supervisor,' '.join(args)) )
 
 
 
