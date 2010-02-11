@@ -18,15 +18,14 @@ from setuptools import setup, find_packages
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
 
-name = "collective.hostout"
+name = "hostout.supervisor"
 setup(
     name = name,
     version = "0.9.4",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
-    description = """collective.hostout will help you control multiple application environments
-    with the minimum amount of effort. You can manage local, staging and deployment environments
-    with one easy tool.""",
+    description = """Plugin for collective.hostout that starts and stops supervisor
+    during deployment""",
     license = "GPL",
     keywords = "buildout, fabric, deploy, deployment, server, plone, django, host, hosting",
     url='https://svn.plone.org/svn/collective/'+name,
@@ -43,7 +42,7 @@ setup(
     include_package_data = True,
 #    data_files = [('.', ['*.txt'])],
 #    package_data = {'':('*.txt')},
-    namespace_packages = ['collective'],
+    namespace_packages = ['hostout'],
     install_requires = ['zc.buildout',
                         'zc.recipe.egg',
                         'setuptools',
@@ -51,12 +50,7 @@ setup(
                         'paramiko'
                         ],
     entry_points = {'zc.buildout':
-                    ['default = collective.hostout:Recipe',
-                    'ubuntu = collective.hostout.ubuntu:Recipe',
-                    'mrdeveloper = collective.hostout.mrdeveloper:Recipe',
-                    'datafs = collective.hostout.datafs:Recipe',
-                    "supervisor = collective.hostout.supervisor:Recipe"],
-                    'console_scripts': ['hostout = collective.hostout.hostout:main'],
+                    ['default = collective.hostout.supervisor:Recipe']
                     },
     zip_safe = False,
     )
