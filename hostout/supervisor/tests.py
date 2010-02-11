@@ -95,12 +95,11 @@ def setUp(test):
     #zc.buildout.tests.easy_install_SetUp(test)
     zc.buildout.testing.buildoutSetUp(test)
     zc.buildout.testing.install_develop('collective.hostout', test)
-    zc.buildout.testing.install('functools', test)
+#    zc.buildout.testing.install('functools', test)
     zc.buildout.testing.install('Fabric', test)
     zc.buildout.testing.install('paramiko', test)
     zc.buildout.testing.install('pycrypto', test)
     zc.buildout.testing.install('zc.recipe.egg', test)
-    zc.buildout.testing.install('mr.developer', test)
     
     localssh.start()
 #    client  = ssh.SSHClient()
@@ -133,7 +132,7 @@ def test_suite():
         #doctest.DocTestSuite(),
         doctest.DocFileSuite(
             'README.txt',
-             package='collective.hostout',
+             package='hostout.supervisor',
             setUp=setUp, tearDown=tearDown,
             optionflags = flags,
             globs=globs,

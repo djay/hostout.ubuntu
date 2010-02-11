@@ -32,7 +32,7 @@ setup(
     long_description=(
         read('README.txt')
         + '\n' +
-        read('collective', 'hostout', 'README.txt')
+        read('hostout', 'supervisor', 'README.txt')
         + '\n' +
         read('CHANGES.txt')
         + '\n' 
