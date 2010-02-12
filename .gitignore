@@ -7,4 +7,6 @@ bin
 .installed.cfg
 develop-eggs
 setup.cfg
-
+hostoutversions.cfg
+parts
+src

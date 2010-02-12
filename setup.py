@@ -21,7 +21,7 @@ def read(*rnames):
 name = "hostout.supervisor"
 setup(
     name = name,
-    version = "0.9.4",
+    version = "1.0a1",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = """Plugin for collective.hostout that starts and stops supervisor
@@ -46,11 +46,10 @@ setup(
     install_requires = ['zc.buildout',
                         'zc.recipe.egg',
                         'setuptools',
-                        'Fabric',
-                        'paramiko'
+                        'collective.hostout',
                         ],
     entry_points = {'zc.buildout':
-                    ['default = collective.hostout.supervisor:Recipe']
+                    ['default = hostout.supervisor:Recipe']
                     },
     zip_safe = False,
     )

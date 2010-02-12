@@ -28,6 +28,7 @@ import paramiko
 import paramiko as ssh
 from threading import Event, Thread
 import fabric
+from collective.hostout.tests import LocalSSH
 
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -37,77 +38,29 @@ for i in range(2):
     recipe_location = os.path.split(recipe_location)[0]
 
 
-def run(host, client, env, cmd, **kvargs):
-    return 'run'
-
-def _connect():
-    print "Connected"
-    
-    
-
-class LocalSSH(ServerInterface, Thread):
-    def __init__(self):
-        Thread.__init__(self)
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(('127.0.0.1', 10022))
-        self.key = ssh.RSAKey.generate(1024)
-
-    def run(self):
-
-        self.socket.listen(100)
-        while True:
-            self.socket.settimeout(15)
-            s,addr = self.socket.accept()
-            transport = Transport(s)
-            transport.add_server_key(self.key)
-            event = Event()
-            #transport.set_subsystem_handler('', ShellHandler)
-            transport.start_server(event, server=self)
-
-    def get_allowed_auths(self, username):
-        return "none,password,publickey"
-    def check_auth_none(self, username):
-        return AUTH_SUCCESSFUL
-    def check_auth_password(self, username, password):
-        return AUTH_SUCCESSFUL
-    def check_auth_publickey(self, username, key):
-        return AUTH_SUCCESSFUL
-    def check_channel_request(self, kind, chanid):
-        return OPEN_SUCCEEDED
-    def check_channel_exec_request(self, channel, command):
-#        f = channel.makefile('rU')
-#        cmd = f.readline().strip('\r\n')
-        channel.send("CMD RECIEVED\n")
-        channel.send_exit_status(0)
-        return True
-    def check_channel_shell_request(self, channel):
-            self.channel = channel
-            self.fs = channel.makefile()
-            return True
-    def read(self):
-        return self.fs.read()
-
-localssh = LocalSSH()
-
-
 def setUp(test):
     #zc.buildout.tests.easy_install_SetUp(test)
     zc.buildout.testing.buildoutSetUp(test)
-    zc.buildout.testing.install_develop('collective.hostout', test)
+    zc.buildout.testing.install('collective.hostout', test)
+    zc.buildout.testing.install('hostout.supervisor', test)
+#    zc.buildout.testing.install('collective.recipe.supervisor', test)
+#    zc.buildout.testing.install('supervisor', test)
+    
 #    zc.buildout.testing.install('functools', test)
     zc.buildout.testing.install('Fabric', test)
     zc.buildout.testing.install('paramiko', test)
     zc.buildout.testing.install('pycrypto', test)
     zc.buildout.testing.install('zc.recipe.egg', test)
     
-    localssh.start()
+    test.localssh = LocalSSH(9022)
+    
+    test.localssh.start()
 #    client  = ssh.SSHClient()
 #    client.connect('127.0.0.1', 10022, 'root', None)
 
 
 def tearDown(test):
-    localssh.socket.close()
+    test.localssh.socket.close()
 
 
 

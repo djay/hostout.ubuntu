@@ -57,8 +57,8 @@ exit $REVAL
 """
 
 
-def installonstartup():
-    """Installs supervisor into your init.d scripts in order to ensure that supervisor is started on boot"""
+def supervisorboot():
+    """Ensure that supervisor is started on boot"""
     hostout = api.env.hostout
 
     # based on
@@ -89,16 +89,18 @@ def supervisorstartup():
 
 def supervisorshutdown():
     """Shutdown the supervisor daemon"""
-    hostout = get('hostout')
+    hostout = api.env.hostout
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
     api.run("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
 
 def supervisorctl(*args):
-    """Takes command line arguments and runs supervisorctl on the remote host"""
-    hostout = get('hostout')
+    """Runs remote supervisorlctl with given args"""
+    hostout = api.env.hostout
     bin = "%s/bin" % hostout.getRemoteBuildoutPath()
     supervisor = hostout.options['supervisor']
+    if not args:
+        args = ['status']
     api.run("%s/%sctl %s"% (bin,supervisor,' '.join(args)) )
 
 

@@ -1,75 +1,74 @@
-collective.hostout:supervisor
------------------------------
-This recipe is an example of a hostout plugin. It will set pre and post commands to stop and then 
-restart supervisor after the deployment. It takes the following options
-
 
 Installing
 **********
 
-hostout.supervisor is a plugin to collective.hostout. Hostout is a zc.buildout
+hostout.supervisor is a plugin for collective.hostout_. Hostout is a zc.buildout
 recipe.
 
-1. Install and get working your buildout
+First you need a working buildout_ using supervisor. Here's a really simple one.
 
 >>> write('buildout.cfg',
 ... """
 ... [buildout]
+... parts = helloworld 
+...
+... [helloworld]
+... recipe = zc.recipe.egg:scripts
+... eggs = zc.recipe.egg
+... initialization = import sys
+...   main=lambda: sys.stdout.write('all your hosts are below to us')
+... entry-points = helloworld=__main__:main
+...
+... [supervisor]
+... recipe = collective.recipe.supervisor
+... programs = 10 helloworld bin/helloworld
 ...
 ... """)
 
 >>> print system('bin/buildout -N')
+Installing helloworld.
+Generated script '/sample-buildout/bin/helloworld'.
 
-Normally it would contain other parts to install parts of your application.
+>>> print system('bin/helloworld')
+all your hosts are below to us
 
-2. Add a hostout to your buildout
+Google buildout + your fav app framework to findout how to build it.
+
+Next we add a hostout to our buildout and we extend hostout by adding the supervisor plugin using the "extends"
+option.
+
 
 >>> write('buildout.cfg',
 ... """
 ... [buildout]
-... parts = host1
+... parts = helloworld host
 ...
-... [host1]
+... [helloworld]
+... recipe = zc.recipe.egg:scripts
+... eggs = zc.recipe.egg
+... initialization = import sys
+...   main=lambda: sys.stdout.write('all your hosts are below to us')
+... entry-points = helloworld=__main__:main
+...
+... [supervisor]
+... recipe = collective.recipe.supervisor
+... programs = 10 helloworld bin/helloworld
+...
+... [host]
 ... recipe = collective.hostout
 ... host = 127.0.0.1:10022
-... password = root
+... extends = hostout.supervisor
+... parts = hellowworld supervisor
 ...
 ... """)
 
 >>> print system('bin/buildout -N')
+    Updating helloworld.
+    Installing host.
+    Generated script '/sample-buildout/bin/hostout'.
+    ...
 
-This will give you a hostout script to run commands on the server including
-the deployment command
-
->>> print system('bin/hostout host1 deploy')
-
-You use commands others have made via the extends option.
-Name a hostout plugin egg in the extends option and hostout will download
-and merge any fabfiles and other configuration options from that recipe into
-your current hostout configuration. 
-
->>> write('buildout.cfg',
-... """
-... [buildout]
-... parts = host1
-...
-... [host1]
-... recipe = collective.hostout
-... host = 127.0.0.1:10022
-... password = root
-...
-... extends = collective.hostout:supervisor
-... supervisor = supervisor
-... init.d = True
-...
-... """)
-
->>> print system('bin/buildout -N')
-    Uninstalling host1.
-    Uninstalling example.
-    Installing host1.
-
->>> print system('bin/hostout host1')
+>>> print system('bin/hostout host')
     cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
     Valid commands are:
     ...
@@ -112,6 +111,9 @@ Credits
 
 Dylan Jay ( software at pretaweb dot com )
 
-
-
-
+.. _buildout: http://pypi.python.org/pypi/zc.buildout
+.. _recipe: http://pypi.python.org/pypi/zc.buildout#recipes
+.. _fabric: http://fabfile.org
+.. _collective.hostout: http://pypi.python.org/pypi/collective.hostout
+.. _hostout: http://pypi.python.org/pypi/collective.hostout
+.. _supervisor: http://pypi.python.org/pypi/collective.recipe.supervisor
