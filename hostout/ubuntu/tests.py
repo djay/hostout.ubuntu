@@ -42,11 +42,8 @@ def setUp(test):
     #zc.buildout.tests.easy_install_SetUp(test)
     zc.buildout.testing.buildoutSetUp(test)
     zc.buildout.testing.install('collective.hostout', test)
-    zc.buildout.testing.install('hostout.supervisor', test)
-#    zc.buildout.testing.install('collective.recipe.supervisor', test)
-#    zc.buildout.testing.install('supervisor', test)
+    zc.buildout.testing.install('hostout.ubuntu', test)
     
-#    zc.buildout.testing.install('functools', test)
     zc.buildout.testing.install('Fabric', test)
     zc.buildout.testing.install('paramiko', test)
     zc.buildout.testing.install('pycrypto', test)
@@ -85,7 +82,7 @@ def test_suite():
         #doctest.DocTestSuite(),
         doctest.DocFileSuite(
             'README.txt',
-             package='hostout.supervisor',
+             package='hostout.ubuntu',
             setUp=setUp, tearDown=tearDown,
             optionflags = flags,
             globs=globs,

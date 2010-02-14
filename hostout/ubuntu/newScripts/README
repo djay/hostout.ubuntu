@@ -1,0 +1,8 @@
+Committed before completion.
+
+The install.sh script is the beginning of an ubuntu script to first of all replace
+Universal Installer, then to break apart the functionality, and hopfully use
+pre-built components.
+
+--russf@topia.com
+

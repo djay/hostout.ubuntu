@@ -21,22 +21,19 @@ from os.path import join
 import os
 from os.path import dirname, abspath
 from pkg_resources import resource_string, resource_filename
-
+import sys
 
 def add(list, item):
     return '\n'.join( list.split() + [item] )
 
-
 class Recipe:
-    """hostout.supervisor recipe adds pre and post commands to run supervisor"""
 
     def __init__(self, buildout, name, options):
         self.name, self.options, self.buildout = name, options, buildout
-        supervisor = self.options.get('supervisor','supervisor')
-        self.options['supervisor'] = supervisor
-
         fabfile = resource_filename(__name__, 'fabfile.py')
         self.options['fabfiles'] = add( self.options.get('fabfiles',''), fabfile )
+        options.setdefault('hostos','ubuntu') # used by hostout.cloud
+
 
     def install(self):
         return []

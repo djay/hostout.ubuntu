@@ -18,21 +18,20 @@ from setuptools import setup, find_packages
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
 
-name = "hostout.supervisor"
+name = "hostout.ubuntu"
 setup(
     name = name,
     version = "1.0a1",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
-    description = """Plugin for collective.hostout that starts and stops supervisor
-    during deployment""",
+    description = """Plugin for collective.hostout that bootstraps an ubuntu host ready for hostout deployment""",
     license = "GPL",
     keywords = "buildout, fabric, deploy, deployment, server, plone, django, host, hosting",
     url='https://svn.plone.org/svn/collective/'+name,
     long_description=(
         read('README.txt')
         + '\n' +
-        read('hostout', 'supervisor', 'README.txt')
+        read('hostout', 'ubuntu', 'README.txt')
         + '\n' +
         read('CHANGES.txt')
         + '\n' 
@@ -49,7 +48,7 @@ setup(
                         'collective.hostout',
                         ],
     entry_points = {'zc.buildout':
-                    ['default = hostout.supervisor:Recipe']
+                    ['default = hostout.ubuntu:Recipe']
                     },
     zip_safe = False,
     )
