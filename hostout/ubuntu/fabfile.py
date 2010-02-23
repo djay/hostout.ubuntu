@@ -60,8 +60,10 @@ def bootstrap():
 
     # Add the plone user:
 
-    owner = hostout.effective_user
-    api.sudo('test -d ~%(owner)s || useradd -m %(owner)s' % locals())
+    owner = api.env['user']
+    effective = api.env['effective-user']
+    api.sudo('useradd -m %(owner)s || echo "user exists"' % locals())
+    api.sudo('useradd -m %(effective)s  || echo "user exists"' % locals())
 
     #Copy authorized keys to plone user:
     key_filename, key = api.env.hostout.getIdentityKey()
@@ -72,7 +74,7 @@ def bootstrap():
 
     path = api.env.path
     api.sudo('mkdir -p %(path)s' % locals())
-    setowners()
+    #setowners()
     
     #install buildout
     api.sudo('easy_install-%(major)s zc.buildout' % locals())
@@ -80,24 +82,7 @@ def bootstrap():
     api.run('buildout init')
 #    api.run('cd /%(path)s && bin/buildout install lxml' % locals())
 #    api.run('cd /%(path)s && bin/buildout' % locals())
-    setowners()
-
-
-def setowners():   
-    hostout = api.env.get('hostout')
-    owner = api.env['effective-user']
-    path = api.env.path
-    
-    # cache and buildouts should be owned by the login user
-    # var dir and db should be owned by effective-user
-
-    api.sudo('chown -R %(owner)s:%(owner)s %(path)s' % locals())
-    
-    dl = hostout.getDownloadCache()
-    dist = os.path.join(dl, 'dist')
-    api.sudo('mkdir -p %(dist)s && chown -R %(owner)s:%(owner)s %(dl)s' % locals())
-    bc = hostout.getEggCache()
-    api.sudo('mkdir -p %(bc)s && chown -R %(owner)s:%(owner)s %(bc)s' % locals())
+    #setowners()
 
 
 def predeploy():
