@@ -82,26 +82,30 @@ def postdeploy():
 def supervisorstartup():
     """Start the supervisor daemon"""
     hostout = api.env.hostout
-    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
+    path = hostout.getRemoteBuildoutPath()
+    bin = "%(path)s/bin" % locals()
     supervisor = hostout.options['supervisor']
-    api.sudo("%s/%sd"% (bin,supervisor))
-    api.sudo("%s/%sctl status"% (bin,supervisor))
+    api.sudo("%(bin)s/%(supervisor)sd"% locals())
+    api.sudo("%(bin)s/%(supervisor)sctl status"% locals())
 
 def supervisorshutdown():
     """Shutdown the supervisor daemon"""
     hostout = api.env.hostout
-    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
+    path = hostout.getRemoteBuildoutPath()
+    bin = "%(path)s/bin" % locals()
     supervisor = hostout.options['supervisor']
-    api.run("%s/%sctl shutdown || echo 'Failed to shutdown'"% (bin,supervisor) )
+    api.sudo("%(bin)s/%(supervisor)sctl shutdown || echo 'Failed to shutdown'"% locals() )
 
 def supervisorctl(*args):
     """Runs remote supervisorlctl with given args"""
     hostout = api.env.hostout
-    bin = "%s/bin" % hostout.getRemoteBuildoutPath()
+    path = hostout.getRemoteBuildoutPath()
+    bin = "%(path)s/bin" % locals()
     supervisor = hostout.options['supervisor']
     if not args:
         args = ['status']
-    api.run("%s/%sctl %s"% (bin,supervisor,' '.join(args)) )
+    args = ' '.join(args)
+    api.sudo("%(bin)s/%(supervisor)sctl %(args)s" % locals())
 
 
 
