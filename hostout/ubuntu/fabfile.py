@@ -7,12 +7,25 @@ def bootstrap():
     hostout = api.env.get('hostout')
     #Install and Update Dependencies
 
+    #http://wiki.linuxquestions.org/wiki/Find_out_which_linux_distribution_a_system_belongs_to
+    d = api.run(
+    #    "[ -e /etc/SuSE-release ] && echo SuSE "
+    #            "[ -e /etc/redhat-release ] && echo redhat"
+    #            "[ -e /etc/fedora-release ] && echo fedora || "
+                "lsb_release -rd "
+    #            "[ -e /etc/debian-version ] && echo debian or ubuntu || "
+    #            "[ -e /etc/slackware-version ] && echo slackware"
+               )
+    print d
+    api.run('uname -r')
+
     api.sudo('apt-get -y update')
     api.sudo('apt-get -y upgrade ')
     
     
     version = api.env['python-version']
     major = '.'.join(version.split('.')[:2])
+    
 
     api.sudo('apt-get -y install '
              'build-essential '
@@ -60,33 +73,50 @@ def bootstrap():
 
     # Add the plone user:
 
-    owner = api.env['user']
-    effective = api.env['effective-user']
-    api.sudo('useradd -m %(owner)s || echo "user exists"' % locals())
-    api.sudo('useradd -m %(effective)s  || echo "user exists"' % locals())
 
-    #Copy authorized keys to plone user:
-    key_filename, key = api.env.hostout.getIdentityKey()
-    api.sudo("rm -rf ~%(owner)s/.ssh" % locals())
-    api.sudo("mkdir -p ~%(owner)s/.ssh" % locals())
-    api.sudo("echo '%(key)s' > ~%(owner)s/.ssh/authorized_keys" % locals())
-    api.sudo("chown -R %(owner)s:%(owner)s ~%(owner)s/.ssh" % locals() )
+    owner = api.env['buildout-user']
+    effective = api.env['effective-user']
+    buildoutgroup = api.env['buildout-group']
+    api.sudo('groupadd -f %(buildoutgroup)s' % locals())
+    if owner:
+        api.sudo('egrep %(owner)s /etc/passwd || adduser %(owner)s ' % locals())
+        api.sudo('gpasswd -a %(owner)s %(buildoutgroup)s' % locals())
+    if effective:
+        api.sudo('egrep %(effective)s /etc/passwd || adduser %(effective)s' % locals())
+        api.sudo('gpasswd -a %(effective)s %(buildoutgroup)s' % locals())
+
+#    api.sudo('groupadd %(buildoutgroup)s || echo "group exists"' % locals())    
+#    api.sudo('useradd -m %(owner)s || echo "user exists"' % locals())
+#    api.sudo('adduser  %(owner)s %(buildoutgroup)s ' % locals())
+#    api.sudo('useradd --system %(effective)s  || echo "user exists"' % locals())
+#    api.sudo('adduser  %(effective)s %(buildoutgroup)s ' % locals())
+
+
+    hostout.setaccess()
+
 
     path = api.env.path
     api.sudo('mkdir -p %(path)s' % locals())
-    #setowners()
+    hostout.setowners()
     
     #install buildout
-    api.sudo('easy_install-%(major)s zc.buildout' % locals())
+#    api.sudo('easy_install-%(major)s zc.buildout' % locals())
     api.env.cwd = api.env.path
-    api.run('buildout init')
+    api.sudo('wget http://svn.zope.org/*checkout*/zc.buildout/trunk/bootstrap/bootstrap.py')
+    api.sudo('echo "[buildout]" > buildout.cfg')
+    api.sudo('python%(major)s bootstrap.py' % locals())
+
+#    api.sudo('easy_install-%(major)s zc.buildout' % locals())
+#    api.env.cwd = api.env.path
+#    api.run('buildout init')
 #    api.run('cd /%(path)s && bin/buildout install lxml' % locals())
 #    api.run('cd /%(path)s && bin/buildout' % locals())
-    #setowners()
+
 
 
 def predeploy():
     path = api.env.path
+    api.env.cwd = ''
 
     if api.sudo("ls  %(path)s/bin/buildout || echo 'bootstrap' " % locals()) == 'bootstrap':
         bootstrap()
