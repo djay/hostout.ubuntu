@@ -1,6 +1,10 @@
 Release History
 ***************
 
+1.0a2 (2010-05-28)
+------------------
+- Moved setaccess and setowners into collective.hostout
+
 
 1.0a1 (2010-02-13)
 ------------------
