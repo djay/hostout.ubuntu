@@ -219,13 +219,18 @@ def supervisorctl(*args):
 
 
 def restart(*args):
+    """ supervisorctl restart command """
     api.env.hostout.supervisorctl('restart', *args)
 
 def start(*args):
+    """ supervisorctl start command """
     api.env.hostout.supervisorctl('start', *args)
 def stop(*args):
+    """ supervisorctl stop command """
     api.env.hostout.supervisorctl('stop', *args)
 def status(*args):
+    """ supervisorctl status command """
     api.env.hostout.supervisorctl('status', *args)
 def tail(*args):
+    """ supervisorctl tail command """
     api.env.hostout.supervisorctl('tail', *args)
