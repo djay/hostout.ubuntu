@@ -48,8 +48,8 @@ setup(
                         'setuptools',
                         'collective.hostout',
                         ],
-    entry_points = {'zc.buildout':
-                    ['default = hostout.supervisor:Recipe']
+    entry_points = {'zc.buildout':['default = hostout.supervisor:Recipe'],
+                    'fabric': ['fabfile = hostout.supervisor.fabfile']
                     },
     zip_safe = False,
     )

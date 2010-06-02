@@ -35,9 +35,6 @@ class Recipe:
         supervisor = self.options.get('supervisor','supervisor')
         self.options['supervisor'] = supervisor
 
-        fabfile = resource_filename(__name__, 'fabfile.py')
-        self.options['fabfiles'] = add( self.options.get('fabfiles',''), fabfile )
-
     def install(self):
         return []
 

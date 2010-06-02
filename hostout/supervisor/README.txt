@@ -72,7 +72,7 @@ option.
     cmdline is: bin/hostout host1 [host2...] [all] cmd1 [cmd2...] [arg1 arg2...]
     Valid commands are:
     ...
-       installonstartup   : Installs supervisor into your init.d scripts in order to ensure that supervisor is started on boot
+       supervisorboot     : Installs supervisor into your init.d scripts in order to ensure that supervisor is started on boot
     ...
        supervisorctl      : Takes command line arguments and runs supervisorctl on the remote host
        supervisorshutdown : Shutdown the supervisor daemon
