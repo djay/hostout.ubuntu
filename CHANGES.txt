@@ -1,8 +1,8 @@
 Release History
 ***************
 
-1.0a2 (??)
-----------
+1.0a2 (2010-06-03)
+------------------
 - falfile entrypoint
 - better init.d script
 
