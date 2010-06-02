@@ -47,8 +47,8 @@ setup(
                         'setuptools',
                         'collective.hostout',
                         ],
-    entry_points = {'zc.buildout':
-                    ['default = hostout.ubuntu:Recipe']
+    entry_points = {'zc.buildout':['default = hostout.ubuntu:Recipe'],
+        'fabric': ['fabfile = hostout.ubuntu.fabfile'],
                     },
     zip_safe = False,
     )

@@ -30,8 +30,6 @@ class Recipe:
 
     def __init__(self, buildout, name, options):
         self.name, self.options, self.buildout = name, options, buildout
-        fabfile = resource_filename(__name__, 'fabfile.py')
-        self.options['fabfiles'] = add( self.options.get('fabfiles',''), fabfile )
         options.setdefault('hostos','ubuntu') # used by hostout.cloud
 
 
