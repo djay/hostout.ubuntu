@@ -21,7 +21,7 @@ def read(*rnames):
 name = "hostout.ubuntu"
 setup(
     name = name,
-    version = "1.0a3",
+    version = "1.0a4",
     author = "Dylan Jay",
     author_email = "software@pretaweb.com",
     description = """Plugin for collective.hostout that bootstraps an ubuntu host ready for hostout deployment""",

@@ -1,7 +1,12 @@
 Release History
 ***************
 
+1.0a4 (??)
+----------
+- Reduce dependencies installed to a minimum
+
 1.0a3 (2010-06-03)
+------------------
 - fabfile entrypoint
 
 1.0a2 (2010-05-28)
