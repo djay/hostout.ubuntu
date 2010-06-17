@@ -46,7 +46,7 @@ def bootstrap():
     
     #install buildout
     api.env.cwd = api.env.path
-    api.sudo('wget -r http://python-distribute.org/bootstrap.py')
+    api.sudo('wget -O bootstrap.py http://python-distribute.org/bootstrap.py')
     api.sudo('echo "[buildout]" > buildout.cfg')
     api.sudo('python%(major)s bootstrap.py' % locals())
 
