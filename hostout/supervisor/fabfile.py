@@ -11,7 +11,7 @@ initd = """
 # description: supervisord
 
 # Source function library.
-. /etc/rc.d/init.d/functions
+#. /etc/rc.d/init.d/functions
 
 ENV=plonedev
 BUILDOUT=%(bin)s
@@ -56,7 +56,7 @@ esac
 exit $REVAL
 """
 
-initd ="""
+initd_old ="""
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          supervisor
@@ -170,11 +170,12 @@ def supervisorboot():
     supervisor = hostout.options['supervisor']
     script = initd % locals()
     name = hostout.name
-    api.sudo('test -f /etc/init.d/%(name)s-%(supervisor)s && rm /etc/init.d/%(name)s-%(supervisor)s || echo "pass"'%locals())
-    contrib.files.append(script, '/etc/init.d/%(name)s-%(supervisor)s'%locals(), use_sudo=True)
-    api.sudo('chmod +x /etc/init.d/%(name)s-%(supervisor)s'%locals())
+    path = '/etc/rc.d/init.d'
+    api.sudo('test -f %(path)s/%(name)s-%(supervisor)s && rm %(path)s/%(name)s-%(supervisor)s || echo "pass"'%locals())
+    contrib.files.append(script, '%(path)s/%(name)s-%(supervisor)s'%locals(), use_sudo=True)
+    api.sudo('chmod +x %(path)s/%(name)s-%(supervisor)s'%locals())
     api.sudo(('(which update-rc.d && update-rc.d %(name)s-%(supervisor)s defaults) || '
-             '(which chkconfig && chkconfig --add %(name)s-%(supervisor)s)') % locals())
+             '(test -f /sbin/chkconfig && /sbin/chkconfig --add %(name)s-%(supervisor)s)') % locals())
     #sudo('sh -c "cd /etc/init.d && ln -s %s/%sd %s-%sd"' % (bin, supervisor, hostout.name, supervisor))
     #sudo('sh -c "cd /etc/init.d && update-rc.d %s-%sd defaults"' % (hostout.name, supervisor))
 
