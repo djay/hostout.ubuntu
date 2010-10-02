@@ -32,7 +32,6 @@ class Recipe:
         self.name, self.options, self.buildout = name, options, buildout
         options.setdefault('hostos','ubuntu') # used by hostout.cloud
 
-
     def install(self):
         return []
 
