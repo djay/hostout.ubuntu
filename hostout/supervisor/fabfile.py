@@ -216,7 +216,7 @@ def supervisorctl(*args):
     if not args:
         args = ['status']
     args = ' '.join(args)
-    api.sudo("%(bin)s/%(supervisor)sctl %(args)s" % locals())
+    api.run("%(bin)s/%(supervisor)sctl %(args)s" % locals())
 
 
 def restart(*args):
