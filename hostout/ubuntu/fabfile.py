@@ -1,7 +1,27 @@
 import os
 import os.path
-from fabric import api
+from fabric import api,contrib
 
+src_karmic="""
+deb http://gb.archive.ubuntu.com/ubuntu/ karmic main restricted universe multiverse
+deb-src http://gb.archive.ubuntu.com/ubuntu/ karmic main restricted universe multiverse
+deb http://gb.archive.ubuntu.com/ubuntu/ karmic-updates main restricted universe multiverse
+deb-src http://gb.archive.ubuntu.com/ubuntu/ karmic-updates main restricted universe multiverse
+deb http://gb.archive.ubuntu.com/ubuntu/ karmic-backports main restricted universe multiverse
+deb-src http://gb.archive.ubuntu.com/ubuntu/ karmic-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu karmic-security main restricted universe multiverse
+deb-src http://security.ubuntu.com/ubuntu karmic-security main restricted universe multiverse
+"""
+src_lucid="""
+deb http://gb.archive.ubuntu.com/ubuntu/ lucid main restricted universe multiverse
+deb-src http://gb.archive.ubuntu.com/ubuntu/ lucid main restricted universe multiverse
+deb http://gb.archive.ubuntu.com/ubuntu/ lucid-updates main restricted universe multiverse
+deb-src http://gb.archive.ubuntu.com/ubuntu/ lucid-updates main restricted universe multiverse
+deb http://gb.archive.ubuntu.com/ubuntu/ lucid-backports main restricted universe multiverse
+deb-src http://gb.archive.ubuntu.com/ubuntu/ lucid-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu lucid-security main restricted universe multiverse
+deb-src http://security.ubuntu.com/ubuntu lucid-security main restricted universe multiverse
+"""
 
 def bootstrap():
     """Update ubuntu with build tools, python and bootstrap buildout"""
@@ -33,22 +53,50 @@ def bootstrap():
     major = '.'.join(version.split('.')[:2])
     
     #Install and Update Dependencies
-    api.sudo('apt-get -y install '
+
+    #contrib.files.append(apt_source, '/etc/apt/source.list', use_sudo=True)
+    api.sudo('apt-get -yq install '
              'build-essential '
-             'python%(major)s python%(major)s-dev '
+#             'python%(major)s python%(major)s-dev '
 #             'python-libxml2 '
 #             'python-elementtree '
 #             'python-celementtree '
              'ncurses-dev '
+             'libncurses5-dev '
+# needed for lxml on lucid
+             'libz-dev '
+             'libdb4.6 '
+             'libxp-dev '
+             'libreadline5 '
              'libreadline5-dev '
              % locals())
+
+    try:
+        api.sudo('apt-get -yq install python%(major)s python%(major)s-dev '%locals())
+        #install buildout
+        api.env.cwd = api.env.path
+        api.sudo('wget -O bootstrap.py http://python-distribute.org/bootstrap.py')
+        api.sudo('echo "[buildout]" > buildout.cfg')
+        api.sudo('python%(major)s bootstrap.py' % locals())
+    except:
+        hostout.bootstrapsource()
+
+    #api.sudo('apt-get -yq update; apt-get dist-upgrade')
+
+#    api.sudo('apt-get install python2.4=2.4.6-1ubuntu3.2.9.10.1 python2.4-dbg=2.4.6-1ubuntu3.2.9.10.1 \
+# python2.4-dev=2.4.6-1ubuntu3.2.9.10.1 python2.4-doc=2.4.6-1ubuntu3.2.9.10.1 \
+# python2.4-minimal=2.4.6-1ubuntu3.2.9.10.1')
+    #wget http://mirror.aarnet.edu.au/pub/ubuntu/archive/pool/main/p/python2.4/python2.4-minimal_2.4.6-1ubuntu3.2.9.10.1_i386.deb -O python2.4-minimal.deb
+    #wget http://mirror.aarnet.edu.au/pub/ubuntu/archive/pool/main/p/python2.4/python2.4_2.4.6-1ubuntu3.2.9.10.1_i386.deb -O python2.4.deb
+    #wget http://mirror.aarnet.edu.au/pub/ubuntu/archive/pool/main/p/python2.4/python2.4-dev_2.4.6-1ubuntu3.2.9.10.1_i386.deb -O python2.4-dev.deb
+    #sudo dpkg -i python2.4-minimal.deb python2.4.deb python2.4-dev.deb
+    #rm python2.4-minimal.deb python2.4.deb python2.4-dev.deb
+
     # python-profiler?
     
-    #install buildout
-    api.env.cwd = api.env.path
-    api.sudo('wget -O bootstrap.py http://python-distribute.org/bootstrap.py')
-    api.sudo('echo "[buildout]" > buildout.cfg')
-    api.sudo('python%(major)s bootstrap.py' % locals())
+
+    #ensure bootstrap files have correct owners
+    hostout.setowners()
 
 
 def predeploy():
